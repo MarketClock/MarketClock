@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Market Clock</title>
+
+<style>
+body{
+  margin:0;
+  padding:40px;
+  background:#111;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  text-align:center;
+}
+
+#top{margin-bottom:40px}
+#clock{font-size:72px;font-weight:bold}
+#date{font-size:16px;opacity:.8}
+
+#markets{
+  max-width:900px;
+  margin:0 auto;
+  text-align:left;
+}
+
+.market{margin-bottom:28px;font-size:18px}
+.open{color:#4caf50}
+.closed{color:#e53935}
+
+.timeline{
+  margin-top:8px;
+  height:22px;
+  background:#333;
+  border-radius:6px;
+  position:relative;
+  overflow:hidden;
+}
+
+.seg{position:absolute;top:0;height:100%}
+.pre{background:#9c27b0}
+.regular{background:#4caf50}
+.after{background:#2196f3}
+.overnight{background:#0d1b3d}
+
+.now{
+  position:absolute;
+  top:-8px;
+  bottom:-8px;
+  width:2px;
+  background:#ff5252;
+}
+.now:after{
+  content:"▼";
+  position:absolute;
+  top:-14px;
+  left:-6px;
+  color:#ff5252;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="top">
+  <div id="clock"></div>
+  <div id="date"></div>
+</div>
+
+<div id="markets"></div>
+
+<script>
+function utcSec(){
+  const d=new Date();
+  return d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
+}
+function pct(x){ return (x/86400)*100; }
+function format(sec){
+  sec=Math.max(0,Math.floor(sec));
+  return Math.floor(sec/3600)+"h "+Math.floor((sec%3600)/60)+"m "+(sec%60)+"s";
+}
+function inRange(t,a,b){
+  if(b>a) return t>=a && t<b;
+  return t>=a || t<b;
+}
+
+const markets=[
+ {name:"New York (NYSE)", pre:13*3600, open:14.5*3600, close:21*3600, after:22*3600},
+ {name:"NASDAQ", pre:13*3600, open:14.5*3600, close:21*3600, after:22*3600},
+ {name:"London (LSE)", pre:7*3600, open:8*3600, close:16.5*3600, after:18*3600},
+ {name:"Tokyo (TSE)", pre:23*3600, open:0, close:6*3600, after:8*3600},
+ {name:"Sydney (ASX)", pre:22*3600, open:23*3600, close:5*3600, after:7*3600}
+];
+
+function drawSeg(a,b,cls){
+  if(b>a){
+    return `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b-a)}%"></div>`;
+  }else{
+    return `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(86400-a)}%"></div>
+            <div class="seg ${cls}" style="left:0;width:${pct(b)}%"></div>`;
+  }
+}
+
+function render(){
+  const now=utcSec();
+  const day=new Date().getUTCDay();
+  let html="";
+
+  markets.forEach(m=>{
+    let isOpen=inRange(now,m.open,m.close) && day!==0 && day!==6;
+
+    let sec;
+    if(isOpen){
+      let c=m.close<=m.open?m.close+86400:m.close;
+      let n=now<m.open?now+86400:now;
+      sec=c-n;
+    }else{
+      sec=(m.open-now+86400)%86400;
+      if(day===0||day===6) sec+=((8-day)%7)*86400;
+    }
+
+    html+=`
+      <div class="market ${isOpen?"open":"closed"}">
+        <strong>${m.name}</strong>: ${isOpen?"OPEN":"CLOSED"} — ${isOpen?"Closes":"Opens"} in ${format(sec)}
+        <div class="timeline">
+          ${drawSeg(m.pre,m.open,"pre")}
+          ${drawSeg(m.open,m.close,"regular")}
+          ${drawSeg(m.close,m.after,"after")}
+          ${drawSeg(m.after,m.pre,"overnight")}
+          <div class="now" style="left:${pct(now)}%"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("markets").innerHTML=html;
+}
+
+function updateTop(){
+  const d=new Date();
+  document.getElementById("clock").textContent=d.toLocaleTimeString();
+  document.getElementById("date").textContent=d.toDateString();
+}
+
+setInterval(()=>{
+  updateTop();
+  render();
+},1000);
+
+updateTop();
+render();
+</script>
+
+</body>
+</html>
