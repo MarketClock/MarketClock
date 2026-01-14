@@ -2,16 +2,58 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Market Clock</title>
+<title>Market Clock – Live Global Market Open/Close Times</title>
 
 <style>
+:root.dark body{
+  background:#111;
+  color:#fff;
+}
+:root.light body{
+  background:#f5f5f5;
+  color:#111;
+}
+
 body{
   margin:0;
   padding:40px;
-  background:#111;
-  color:#fff;
   font-family:Arial,Helvetica,sans-serif;
   text-align:center;
+}
+
+/* Page Title */
+#pageTitle{
+  font-size:28px;
+  font-weight:600;
+  margin-bottom:20px;
+  opacity:0.9;
+}
+
+/* Timezone Display */
+#timezone{
+  margin-bottom:30px;
+  font-size:16px;
+  opacity:0.8;
+}
+
+/* Toggle Button */
+#themeToggle{
+  position:fixed;
+  top:20px;
+  right:20px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+}
+:root.dark #themeToggle{
+  background:#444;
+  color:#fff;
+}
+:root.light #themeToggle{
+  background:#ddd;
+  color:#000;
 }
 
 #top{margin-bottom:40px}
@@ -25,17 +67,21 @@ body{
 }
 
 .market{margin-bottom:28px;font-size:18px}
-.open{color:#4caf50}
-.closed{color:#e53935}
+:root.dark .open{color:#4caf50}
+:root.dark .closed{color:#e53935}
+:root.light .open{color:#2e7d32}
+:root.light .closed{color:#c62828}
 
+/* Timeline Bar */
 .timeline{
   margin-top:8px;
   height:22px;
-  background:#333;
   border-radius:6px;
   position:relative;
   overflow:hidden;
 }
+:root.dark .timeline{background:#333}
+:root.light .timeline{background:#ddd}
 
 .seg{position:absolute;top:0;height:100%}
 .pre{background:#9c27b0}
@@ -43,25 +89,74 @@ body{
 .after{background:#2196f3}
 .overnight{background:#0d1b3d}
 
+/* Stronger NOW line */
 .now{
   position:absolute;
-  top:-8px;
-  bottom:-8px;
-  width:2px;
-  background:#ff5252;
+  top:-10px;
+  bottom:-10px;
+  width:4px;
+  background:#ff0000;
+  box-shadow:0 0 6px #ff0000;
 }
 .now:after{
   content:"▼";
   position:absolute;
-  top:-14px;
-  left:-6px;
-  color:#ff5252;
-  font-size:14px;
+  top:-16px;
+  left:-7px;
+  color:#ff0000;
+  font-size:16px;
+}
+
+/* Legend */
+#legend{
+  margin-top:40px;
+  font-size:16px;
+}
+.legend-item{
+  display:inline-flex;
+  align-items:center;
+  margin:0 12px;
+}
+.legend-box{
+  width:18px;
+  height:18px;
+  margin-right:6px;
+  border-radius:4px;
+}
+
+/* Share Button */
+#shareContainer{
+  margin-top:30px;
+  text-align:center;
+}
+
+#shareBtn{
+  padding:10px 20px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:16px;
+}
+
+:root.dark #shareBtn{
+  background:#444;
+  color:#fff;
+}
+
+:root.light #shareBtn{
+  background:#ddd;
+  color:#000;
 }
 </style>
 </head>
 
 <body>
+
+<button id="themeToggle">Dark</button>
+
+<div id="pageTitle">Market Clock – Live Global Market Open/Close Times</div>
+
+<div id="timezone"></div>
 
 <div id="top">
   <div id="clock"></div>
@@ -70,7 +165,62 @@ body{
 
 <div id="markets"></div>
 
+<div id="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#9c27b0"></div>Pre‑Market</div>
+  <div class="legend-item"><div class="legend-box" style="background:#4caf50"></div>Regular Hours</div>
+  <div class="legend-item"><div class="legend-box" style="background:#2196f3"></div>After Hours</div>
+  <div class="legend-item"><div class="legend-box" style="background:#0d1b3d"></div>Overnight</div>
+</div>
+
+<div id="shareContainer">
+  <button id="shareBtn">Share</button>
+</div>
+
 <script>
+/* THEME TOGGLE */
+const root = document.documentElement;
+const toggle = document.getElementById("themeToggle");
+
+// default to dark mode
+root.classList.add("dark");
+toggle.textContent = "Light"; // button shows the *other* mode
+
+toggle.addEventListener("click", () => {
+  if(root.classList.contains("dark")){
+    root.classList.remove("dark");
+    root.classList.add("light");
+    toggle.textContent = "Dark";
+  } else {
+    root.classList.remove("light");
+    root.classList.add("dark");
+    toggle.textContent = "Light";
+  }
+});
+
+/* SHARE BUTTON */
+const shareBtn = document.getElementById("shareBtn");
+
+shareBtn.addEventListener("click", async () => {
+  const shareData = {
+    title: "Market Clock",
+    text: "Check out this live global market clock!",
+    url: window.location.href
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+    } catch (err) {
+      console.log("Share cancelled");
+    }
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    shareBtn.textContent = "Copied!";
+    setTimeout(() => shareBtn.textContent = "Share", 1500);
+  }
+});
+
+/* CLOCK + MARKET LOGIC */
 function utcSec(){
   const d=new Date();
   return d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
@@ -93,6 +243,13 @@ const markets=[
  {name:"Sydney (ASX)", pre:22*3600, open:23*3600, close:5*3600, after:7*3600}
 ];
 
+function getStage(now,m){
+  if(inRange(now,m.open,m.close)) return "Regular Hours";
+  if(inRange(now,m.pre,m.open)) return "Pre‑Market";
+  if(inRange(now,m.close,m.after)) return "After Hours";
+  return "Overnight";
+}
+
 function drawSeg(a,b,cls){
   if(b>a){
     return `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b-a)}%"></div>`;
@@ -109,6 +266,7 @@ function render(){
 
   markets.forEach(m=>{
     let isOpen=inRange(now,m.open,m.close) && day!==0 && day!==6;
+    let stage=getStage(now,m);
 
     let sec;
     if(isOpen){
@@ -123,6 +281,7 @@ function render(){
     html+=`
       <div class="market ${isOpen?"open":"closed"}">
         <strong>${m.name}</strong>: ${isOpen?"OPEN":"CLOSED"} — ${isOpen?"Closes":"Opens"} in ${format(sec)}
+        <br><em>Stage: ${stage}</em>
         <div class="timeline">
           ${drawSeg(m.pre,m.open,"pre")}
           ${drawSeg(m.open,m.close,"regular")}
@@ -141,6 +300,9 @@ function updateTop(){
   const d=new Date();
   document.getElementById("clock").textContent=d.toLocaleTimeString();
   document.getElementById("date").textContent=d.toDateString();
+
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  document.getElementById("timezone").textContent = "Your Timezone: " + tz;
 }
 
 setInterval(()=>{
