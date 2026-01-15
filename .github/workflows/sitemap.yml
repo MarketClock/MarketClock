@@ -29,3 +29,5 @@ jobs:
         with:
           commit_message: "Auto-generate sitemap"
           file_pattern: "sitemap.xml"
+          skip_dirty_check: true
+
