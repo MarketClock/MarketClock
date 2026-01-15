@@ -1,0 +1,25 @@
+name: Generate Sitemap
+
+on:
+  push:
+    branches:
+      - main   # change this if your default branch is different
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Generate sitemap
+        uses: cicirello/generate-sitemap@v1
+        with:
+          base-url: "https://marketclock.co.uk"
+
+      - name: Commit sitemap
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-generate sitemap"
+          file_pattern: "sitemap.xml"
