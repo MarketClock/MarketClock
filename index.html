@@ -2,7 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
+
 <button id="themeToggle">Dark</button>
+<button id="tzToggle">Show Market Local Times</button>
 
 <div id="pageTitle">Market Clock – Live Global Market Open/Close Times</div>
 
@@ -13,7 +15,7 @@
   <div id="date"></div>
 </div>
 
-<!-- NEW: markets container stays empty initially -->
+<!-- Markets container -->
 <div id="markets" class="market-grid"></div>
 
 <div id="legend">
@@ -26,8 +28,8 @@
 <div id="shareContainer">
   <button id="shareBtn">Share</button>
 </div>
+
 <style>
-/* Smooth transitions for theme changes */
 * {
   transition: background-color 0.4s ease, color 0.4s ease;
 }
@@ -48,7 +50,6 @@ body{
   text-align:center;
 }
 
-/* Page Title */
 #pageTitle{
   font-size:28px;
   font-weight:600;
@@ -56,29 +57,32 @@ body{
   opacity:0.9;
 }
 
-/* Timezone Display */
 #timezone{
   margin-bottom:30px;
   font-size:16px;
   opacity:0.8;
 }
 
-/* Toggle Button */
-#themeToggle{
+#themeToggle, #tzToggle{
   position:fixed;
   top:20px;
-  right:20px;
   padding:8px 14px;
   border:none;
   border-radius:6px;
   cursor:pointer;
   font-size:14px;
 }
-:root.dark #themeToggle{
+
+#themeToggle{ right:20px; }
+#tzToggle{ right:120px; }
+
+:root.dark #themeToggle,
+:root.dark #tzToggle{
   background:#444;
   color:#fff;
 }
-:root.light #themeToggle{
+:root.light #themeToggle,
+:root.light #tzToggle{
   background:#ddd;
   color:#000;
 }
@@ -87,7 +91,6 @@ body{
 #clock{font-size:72px;font-weight:bold}
 #date{font-size:16px;opacity:.8}
 
-/* Market grid layout */
 #markets{
   max-width:1000px;
   margin:0 auto;
@@ -100,16 +103,14 @@ body{
   gap:24px;
 }
 
-/* Two columns on wider screens */
 @media (min-width: 900px){
   .market-grid{
     grid-template-columns:1fr 1fr;
-    column-gap:28px; /* medium spacing */
+    column-gap:28px;
     row-gap:24px;
   }
 }
 
-/* Market card */
 .market{
   font-size:18px;
   padding:16px 18px;
@@ -118,7 +119,6 @@ body{
   background:rgba(0,0,0,0.1);
 }
 
-/* Adjust background per theme */
 :root.light .market{
   background:#ffffff;
   box-shadow:0 2px 8px rgba(0,0,0,0.08);
@@ -133,7 +133,6 @@ body{
 :root.light .open{color:#2e7d32}
 :root.light .closed{color:#c62828}
 
-/* Timeline Bar */
 .timeline{
   margin-top:8px;
   height:22px;
@@ -159,7 +158,6 @@ body{
 .after{background:#2196f3}
 .overnight{background:#0d1b3d}
 
-/* Smooth sliding NOW line */
 .now{
   position:absolute;
   top:-10px;
@@ -178,7 +176,6 @@ body{
   font-size:16px;
 }
 
-/* Legend */
 #legend{
   margin-top:40px;
   font-size:16px;
@@ -195,7 +192,6 @@ body{
   border-radius:4px;
 }
 
-/* Share Button */
 #shareContainer{
   margin-top:30px;
   text-align:center;
@@ -274,7 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  /* CLOCK + MARKET LOGIC */
+  /* BASIC TIME HELPERS */
   function utcSec(){
     const d=new Date();
     return d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
@@ -289,50 +285,164 @@ document.addEventListener("DOMContentLoaded", () => {
     return t>=a || t<b;
   }
 
- const markets = [
-  // United States
-  {id:"nyse",   name:"New York (NYSE & NASDAQ)",     pre:13*3600,   open:14.5*3600, close:21*3600,   after:22*3600},
-  
+  /* MARKETS (ACCURATE HOURS + SPLIT SESSIONS) */
+  const markets = [
+    // United States (pre + regular + after)
+    {
+      id:"nyse",
+      name:"New York (NYSE & NASDAQ)",
+      tz:"America/New_York",
+      pre: 13*3600,          // 09:00 ET
+      open: 14.5*3600,       // 09:30 ET
+      close: 21*3600,        // 16:00 ET
+      after: 22*3600         // 17:00 ET
+    },
 
-  // United Kingdom
-  {id:"lse",    name:"London (LSE)",        pre:7*3600,    open:8*3600,    close:16.5*3600, after:18*3600},
+    // United Kingdom (continuous)
+    {
+      id:"lse",
+      name:"London (LSE)",
+      tz:"Europe/London",
+      open: 8*3600,
+      close: 16.5*3600
+    },
 
-  // Germany
-  {id:"xetra",  name:"Frankfurt (Xetra)",   pre:6*3600,    open:7*3600,    close:15.5*3600, after:17*3600},
+    // Germany (continuous)
+    {
+      id:"xetra",
+      name:"Frankfurt (Xetra)",
+      tz:"Europe/Berlin",
+      open: 7*3600,
+      close: 15.5*3600
+    },
 
-  // France
-  {id:"paris",  name:"Euronext Paris",      pre:6*3600,    open:7*3600,    close:15.5*3600, after:17*3600},
+    // France (continuous)
+    {
+      id:"paris",
+      name:"Euronext Paris",
+      tz:"Europe/Paris",
+      open: 7*3600,
+      close: 15.5*3600
+    },
 
-  // Japan
-  {id:"tse",    name:"Tokyo (TSE)",         pre:23*3600,   open:0,         close:6*3600,    after:8*3600},
+    // Japan (split session)
+    {
+      id:"tse",
+      name:"Tokyo (TSE)",
+      tz:"Asia/Tokyo",
+      open1: 9*3600,
+      close1: 11.5*3600,
+      open2: 12.5*3600,
+      close2: 15*3600
+    },
 
-  // Hong Kong
-  {id:"hkex",   name:"Hong Kong (HKEX)",    pre:0.5*3600,  open:1*3600,    close:8*3600,    after:9.5*3600},
+    // Hong Kong (split session)
+    {
+      id:"hkex",
+      name:"Hong Kong (HKEX)",
+      tz:"Asia/Hong_Kong",
+      open1: 9.5*3600,
+      close1: 12*3600,
+      open2: 13*3600,
+      close2: 16*3600
+    },
 
-  // China
-  {id:"sse",    name:"Shanghai (SSE)",      pre:0.5*3600,  open:1*3600,    close:7*3600,    after:8.5*3600},
+    // China (split session)
+    {
+      id:"sse",
+      name:"Shanghai (SSE)",
+      tz:"Asia/Shanghai",
+      open1: 9*3600,
+      close1: 11.5*3600,
+      open2: 13*3600,
+      close2: 15*3600
+    },
 
-  // India
-  {id:"nse",    name:"India (NSE)",         pre:3*3600,    open:3.75*3600, close:10.25*3600,after:12*3600},
-
-  // Australia
-  {id:"asx",    name:"Sydney (ASX)",        pre:22*3600,   open:23*3600,   close:5*3600,    after:7*3600},
-
-  // Canada
-  {id:"tsx",    name:"Toronto (TSX)",       pre:13*3600,   open:14.5*3600, close:21*3600,   after:22*3600},
-    
-  // Brazil
-  {id:"b3",     name:"Brazil (B3)",         pre:11*3600,   open:12*3600,   close:20*3600,   after:21.5*3600}
-];
+    // Singapore (split session)
+    {
+    id:"sgx",
+    name:"Singapore (SGX)",
+    tz:"Asia/Singapore",
+    open1: 9*3600,
+    close1: 12*3600,
+    open2: 13*3600,
+    close2: 17*3600
+    },
 
 
-  function getStage(now,m){
-    if(inRange(now,m.open,m.close)) return "Regular Hours";
-    if(inRange(now,m.pre,m.open)) return "Pre‑Market";
-    if(inRange(now,m.close,m.after)) return "After Hours";
+    // India (continuous)
+    {
+      id:"nse",
+      name:"India (NSE)",
+      tz:"Asia/Kolkata",
+      open: 9.25*3600,
+      close: 15.5*3600
+    },
+
+    // Australia (continuous)
+    {
+      id:"asx",
+      name:"Sydney (ASX)",
+      tz:"Australia/Sydney",
+      open: 23*3600,
+      close: 5*3600
+    },
+
+    // Canada (continuous)
+    {
+      id:"tsx",
+      name:"Toronto (TSX)",
+      tz:"America/Toronto",
+      open: 14.5*3600,
+      close: 21*3600
+    },
+
+    // Brazil (continuous)
+    {
+      id:"b3",
+      name:"Brazil (B3)",
+      tz:"America/Sao_Paulo",
+      open: 12*3600,
+      close: 20*3600
+    }
+  ];
+
+  /* TIMEZONE TOGGLE (GLOBAL) */
+  let showLocalMarketTime = false;
+  const tzToggle = document.getElementById("tzToggle");
+
+  tzToggle.addEventListener("click", () => {
+    showLocalMarketTime = !showLocalMarketTime;
+    tzToggle.textContent = showLocalMarketTime
+      ? "Show Your Timezone"
+      : "Show Market Local Times";
+    updateMarkets();
+  });
+
+  /* STAGE LOGIC */
+  function getStage(now, m) {
+    // US markets
+    if (m.pre !== undefined) {
+      if (inRange(now, m.pre, m.open)) return "Pre‑Market";
+      if (inRange(now, m.open, m.close)) return "Regular Hours";
+      if (inRange(now, m.close, m.after)) return "After Hours";
+      return "Overnight";
+    }
+
+    // Split-session markets
+    if (m.open1 !== undefined) {
+      if (inRange(now, m.open1, m.close1)) return "Morning Session";
+      if (inRange(now, m.close1, m.open2)) return "Lunch Break";
+      if (inRange(now, m.open2, m.close2)) return "Afternoon Session";
+      return "Overnight";
+    }
+
+    // Continuous markets
+    if (inRange(now, m.open, m.close)) return "Regular Hours";
     return "Overnight";
   }
 
+  /* DRAW SEGMENT (WRAP‑AROUND SAFE) */
   function drawSeg(a,b,cls){
     if(b>a){
       return `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b-a)}%"></div>`;
@@ -342,7 +452,60 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* INITIAL RENDER: build DOM once */
+  /* DYNAMIC TIMELINE BUILDER */
+  function drawTimeline(m) {
+    let html = "";
+
+    // US markets
+    if (m.pre !== undefined) {
+      html += drawSeg(m.pre, m.open, "pre");
+      html += drawSeg(m.open, m.close, "regular");
+      html += drawSeg(m.close, m.after, "after");
+      html += drawSeg(m.after, m.pre, "overnight");
+      return html;
+    }
+
+    // Split-session markets
+    if (m.open1 !== undefined) {
+      html += drawSeg(m.open1, m.close1, "regular");
+      html += drawSeg(m.close1, m.open2, "overnight"); // lunch gap
+      html += drawSeg(m.open2, m.close2, "regular");
+      html += drawSeg(m.close2, m.open1, "overnight");
+      return html;
+    }
+
+    // Continuous markets
+    html += drawSeg(m.open, m.close, "regular");
+    html += drawSeg(m.close, m.open, "overnight");
+    return html;
+  }
+
+  /* COUNTDOWN LOGIC */
+  function nextEvent(now, m) {
+    const add = t => (t - now + 86400) % 86400;
+
+    // US markets
+    if (m.pre !== undefined) {
+      if (inRange(now, m.pre, m.open)) return ["Opens in", add(m.open)];
+      if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
+      if (inRange(now, m.close, m.after)) return ["After‑hours ends in", add(m.after)];
+      return ["Opens in", add(m.pre)];
+    }
+
+    // Split-session markets
+    if (m.open1 !== undefined) {
+      if (inRange(now, m.open1, m.close1)) return ["Closes in", add(m.close1)];
+      if (inRange(now, m.close1, m.open2)) return ["Reopens in", add(m.open2)];
+      if (inRange(now, m.open2, m.close2)) return ["Closes in", add(m.close2)];
+      return ["Opens in", add(m.open1)];
+    }
+
+    // Continuous markets
+    if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
+    return ["Opens in", add(m.open)];
+  }
+
+  /* INITIAL RENDER */
   const marketsContainer = document.getElementById("markets");
 
   markets.forEach(m => {
@@ -359,10 +522,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
       <em class="market-stage">Stage: --</em>
       <div class="timeline">
-        ${drawSeg(m.pre,m.open,"pre")}
-        ${drawSeg(m.open,m.close,"regular")}
-        ${drawSeg(m.close,m.after,"after")}
-        ${drawSeg(m.after,m.pre,"overnight")}
+        ${drawTimeline(m)}
         <div class="now"></div>
       </div>
     `;
@@ -370,7 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
     marketsContainer.appendChild(wrapper);
   });
 
-  /* UPDATE LOOP: only update text + now line */
+  /* UPDATE LOOP */
   function updateMarkets(){
     const now = utcSec();
     const day = new Date().getUTCDay();
@@ -383,26 +543,47 @@ document.addEventListener("DOMContentLoaded", () => {
       const stageEl = el.querySelector(".market-stage");
       const nowLine = el.querySelector(".now");
 
-      let isOpen = inRange(now,m.open,m.close) && day!==0 && day!==6;
-      let stage = getStage(now,m);
+      const stage = getStage(now, m);
+      const [label, secs] = nextEvent(now, m);
 
-      let sec;
-      if(isOpen){
-        let c=m.close<=m.open?m.close+86400:m.close;
-        let n=now<m.open?now+86400:now;
-        sec=c-n;
-      }else{
-        sec=(m.open-now+86400)%86400;
-        if(day===0||day===6) sec+=((8-day)%7)*86400;
+      // Open/closed flag (weekends closed)
+      let isOpen = false;
+      if (day !== 0 && day !== 6) {
+        if (m.pre !== undefined) {
+          isOpen = inRange(now, m.open, m.close);
+        } else if (m.open1 !== undefined) {
+          isOpen = inRange(now, m.open1, m.close1) || inRange(now, m.open2, m.close2);
+        } else {
+          isOpen = inRange(now, m.open, m.close);
+        }
       }
 
       el.classList.toggle("open", isOpen);
       el.classList.toggle("closed", !isOpen);
 
       statusEl.textContent = isOpen ? "OPEN" : "CLOSED";
-      countdownLabelEl.textContent = isOpen ? "Closes in" : "Opens in";
-      countdownEl.textContent = format(sec);
-      stageEl.textContent = "Stage: " + stage;
+      countdownLabelEl.textContent = label;
+      countdownEl.textContent = format(secs);
+
+      if (showLocalMarketTime && m.tz) {
+        const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
+        let openStr = "";
+        let closeStr = "";
+
+        if (m.open1 !== undefined) {
+          const o1 = new Date(Date.UTC(1970,0,1,0,0,m.open1)).toLocaleTimeString([], opts);
+          const c1 = new Date(Date.UTC(1970,0,1,0,0,m.close1)).toLocaleTimeString([], opts);
+          const o2 = new Date(Date.UTC(1970,0,1,0,0,m.open2)).toLocaleTimeString([], opts);
+          const c2 = new Date(Date.UTC(1970,0,1,0,0,m.close2)).toLocaleTimeString([], opts);
+          stageEl.textContent = `Stage: ${stage} (Local: ${o1}–${c1}, ${o2}–${c2})`;
+        } else {
+          const o = new Date(Date.UTC(1970,0,1,0,0,m.open)).toLocaleTimeString([], opts);
+          const c = new Date(Date.UTC(1970,0,1,0,0,m.close)).toLocaleTimeString([], opts);
+          stageEl.textContent = `Stage: ${stage} (Local: ${o}–${c})`;
+        }
+      } else {
+        stageEl.textContent = "Stage: " + stage;
+      }
 
       nowLine.style.left = pct(now) + "%";
     });
@@ -417,7 +598,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("timezone").textContent = "Your Timezone: " + tz;
   }
 
-  /* Start loop */
   updateTop();
   updateMarkets();
   setInterval(()=>{
@@ -427,3 +607,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+</head>
+<body>
+</body>
+</html>
