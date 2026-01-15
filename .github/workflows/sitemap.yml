@@ -3,7 +3,7 @@ name: Generate Sitemap
 on:
   push:
     branches:
-      - main   # change this if your default branch is different
+      - main   # change if your default branch is different
 
 jobs:
   build:
@@ -16,7 +16,10 @@ jobs:
       - name: Generate sitemap
         uses: cicirello/generate-sitemap@v1
         with:
-          base-url: "https://marketclock.co.uk"
+          path-to-root: .
+          base-url-path: "https://marketclock.co.uk"
+          include-html: true
+          sitemap-format: xml
 
       - name: Commit sitemap
         uses: stefanzweifel/git-auto-commit-action@v5
