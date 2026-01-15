@@ -289,13 +289,42 @@ document.addEventListener("DOMContentLoaded", () => {
     return t>=a || t<b;
   }
 
-  const markets=[
-    {id:"nyse",   name:"New York (NYSE)", pre:13*3600, open:14.5*3600, close:21*3600, after:22*3600},
-    {id:"nasdaq", name:"NASDAQ",          pre:13*3600, open:14.5*3600, close:21*3600, after:22*3600},
-    {id:"lse",    name:"London (LSE)",    pre:7*3600,  open:8*3600,   close:16.5*3600,after:18*3600},
-    {id:"tse",    name:"Tokyo (TSE)",     pre:23*3600, open:0,        close:6*3600,   after:8*3600},
-    {id:"asx",    name:"Sydney (ASX)",    pre:22*3600, open:23*3600,  close:5*3600,   after:7*3600}
-  ];
+ const markets = [
+  // United States
+  {id:"nyse",   name:"New York (NYSE)",     pre:13*3600,   open:14.5*3600, close:21*3600,   after:22*3600},
+  {id:"nasdaq", name:"NASDAQ",              pre:13*3600,   open:14.5*3600, close:21*3600,   after:22*3600},
+
+  // United Kingdom
+  {id:"lse",    name:"London (LSE)",        pre:7*3600,    open:8*3600,    close:16.5*3600, after:18*3600},
+
+  // Germany
+  {id:"xetra",  name:"Frankfurt (Xetra)",   pre:6*3600,    open:7*3600,    close:15.5*3600, after:17*3600},
+
+  // France
+  {id:"paris",  name:"Euronext Paris",      pre:6*3600,    open:7*3600,    close:15.5*3600, after:17*3600},
+
+  // Japan
+  {id:"tse",    name:"Tokyo (TSE)",         pre:23*3600,   open:0,         close:6*3600,    after:8*3600},
+
+  // Hong Kong
+  {id:"hkex",   name:"Hong Kong (HKEX)",    pre:0.5*3600,  open:1*3600,    close:8*3600,    after:9.5*3600},
+
+  // China
+  {id:"sse",    name:"Shanghai (SSE)",      pre:0.5*3600,  open:1*3600,    close:7*3600,    after:8.5*3600},
+
+  // India
+  {id:"nse",    name:"India (NSE)",         pre:3*3600,    open:3.75*3600, close:10.25*3600,after:12*3600},
+
+  // Australia
+  {id:"asx",    name:"Sydney (ASX)",        pre:22*3600,   open:23*3600,   close:5*3600,    after:7*3600},
+
+  // Canada
+  {id:"tsx",    name:"Toronto (TSX)",       pre:13*3600,   open:14.5*3600, close:21*3600,   after:22*3600},
+
+  // Brazil
+  {id:"b3",     name:"Brazil (B3)",         pre:11*3600,   open:12*3600,   close:20*3600,   after:21.5*3600}
+];
+
 
   function getStage(now,m){
     if(inRange(now,m.open,m.close)) return "Regular Hours";
