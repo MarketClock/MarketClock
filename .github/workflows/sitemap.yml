@@ -3,7 +3,10 @@ name: Generate Sitemap
 on:
   push:
     branches:
-      - main   # change if your default branch is different
+      - main
+
+permissions:
+  contents: write
 
 jobs:
   build:
