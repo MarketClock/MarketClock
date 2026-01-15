@@ -2,17 +2,64 @@
 <html>
 <head>
 <meta charset="UTF-8">
-
+<title>Market Clock</title>
+<style>
+/* (same CSS as your original, kept concise) */
+* { transition: background-color 0.4s ease, color 0.4s ease; }
+:root.dark body{ background:#111; color:#fff; }
+:root.light body{ background:#f5f5f5; color:#111; }
+body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align:center; }
+#pageTitle{ font-size:28px; font-weight:600; margin-bottom:20px; opacity:0.9; }
+#timezone{ margin-bottom:30px; font-size:16px; opacity:0.8; }
+#themeToggle, #tzToggle{ position:fixed; top:20px; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+#themeToggle{ right:20px; } #tzToggle{ right:140px; }
+:root.dark #themeToggle, :root.dark #tzToggle{ background:#444; color:#fff; }
+:root.light #themeToggle, :root.light #tzToggle{ background:#ddd; color:#000; }
+#top{margin-bottom:40px} #clock{font-size:72px;font-weight:bold} #date{font-size:16px;opacity:.8}
+#markets{ max-width:1000px; margin:0 auto; text-align:left; }
+.market-grid{ display:grid; grid-template-columns:1fr; gap:24px; }
+@media (min-width:900px){ .market-grid{ grid-template-columns:1fr 1fr; column-gap:28px; row-gap:24px; } }
+.market{ font-size:18px; padding:16px 18px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.25); background:rgba(0,0,0,0.1); position:relative; }
+:root.light .market{ background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+:root.dark .market{ background:#1a1a1a; box-shadow:0 2px 10px rgba(0,0,0,0.6); }
+:root.dark .open{color:#4caf50} :root.dark .closed{color:#e53935}
+:root.light .open{color:#2e7d32} :root.light .closed{color:#c62828}
+.timeline{ margin-top:8px; height:22px; border-radius:6px; position:relative; overflow:hidden; }
+:root.dark .timeline{background:#333} :root.light .timeline{background:#ddd}
+.seg{ position:absolute; top:0; height:100%; transition:filter 0.2s ease; }
+.seg:hover{ filter:brightness(1.25); }
+.pre{background:#9c27b0} .regular{background:#4caf50} .after{background:#2196f3} .overnight{background:#0d1b3d}
+.now{ position:absolute; top:-10px; bottom:-10px; width:4px; background:#ff0000; box-shadow:0 0 6px #ff0000; transition:left 1s linear; }
+.now:after{ content:"▼"; position:absolute; top:-16px; left:-7px; color:#ff0000; font-size:16px; }
+#legend{ margin-top:40px; font-size:16px; } .legend-item{ display:inline-flex; align-items:center; margin:0 12px; }
+.legend-box{ width:18px; height:18px; margin-right:6px; border-radius:4px; }
+#shareContainer{ margin-top:30px; text-align:center; } #shareBtn{ padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-size:16px; }
+:root.dark #shareBtn{ background:#444; color:#fff; } :root.light #shareBtn{ background:#ddd; color:#000; }
+#reorderControls { margin-top: 10px; } #resetOrderBtn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+:root.dark #resetOrderBtn { background: #444; color: #fff; } :root.light #resetOrderBtn { background: #ddd; color: #000; }
+#openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
+:root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
+#openMarketsList { list-style: none; padding-left: 0; margin: 0; } #openMarketsList li { margin-bottom: 6px; }
+.market.dragging { opacity: 0.6; transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 10; }
+.market.placeholder { border: 2px dashed #888; background: transparent !important; height: 80px; }
+</style>
+</head>
+<body>
 <button id="themeToggle">Dark</button>
 <button id="tzToggle">Show Market Local Times</button>
 
 <div id="pageTitle">Market Clock – Live Global Market Open/Close Times</div>
-
 <div id="timezone"></div>
 
 <div id="top">
   <div id="clock"></div>
   <div id="date"></div>
+</div>
+
+<!-- LEFT SIDEBAR -->
+<div id="openMarketsSidebar">
+  <h3>Open Markets</h3>
+  <ul id="openMarketsList"></ul>
 </div>
 
 <!-- Markets container -->
@@ -29,204 +76,19 @@
   <button id="shareBtn">Share</button>
 </div>
 
-<style>
-* {
-  transition: background-color 0.4s ease, color 0.4s ease;
-}
+<div id="reorderControls">
+  <button id="resetOrderBtn">Reset Order</button>
+</div>
 
-:root.dark body{
-  background:#111;
-  color:#fff;
-}
-:root.light body{
-  background:#f5f5f5;
-  color:#111;
-}
-
-body{
-  margin:0;
-  padding:40px;
-  font-family:Arial,Helvetica,sans-serif;
-  text-align:center;
-}
-
-#pageTitle{
-  font-size:28px;
-  font-weight:600;
-  margin-bottom:20px;
-  opacity:0.9;
-}
-
-#timezone{
-  margin-bottom:30px;
-  font-size:16px;
-  opacity:0.8;
-}
-
-#themeToggle, #tzToggle{
-  position:fixed;
-  top:20px;
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:14px;
-}
-
-#themeToggle{ right:20px; }
-#tzToggle{ right:120px; }
-
-:root.dark #themeToggle,
-:root.dark #tzToggle{
-  background:#444;
-  color:#fff;
-}
-:root.light #themeToggle,
-:root.light #tzToggle{
-  background:#ddd;
-  color:#000;
-}
-
-#top{margin-bottom:40px}
-#clock{font-size:72px;font-weight:bold}
-#date{font-size:16px;opacity:.8}
-
-#markets{
-  max-width:1000px;
-  margin:0 auto;
-  text-align:left;
-}
-
-.market-grid{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:24px;
-}
-
-@media (min-width: 900px){
-  .market-grid{
-    grid-template-columns:1fr 1fr;
-    column-gap:28px;
-    row-gap:24px;
-  }
-}
-
-.market{
-  font-size:18px;
-  padding:16px 18px;
-  border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.25);
-  background:rgba(0,0,0,0.1);
-}
-
-:root.light .market{
-  background:#ffffff;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-:root.dark .market{
-  background:#1a1a1a;
-  box-shadow:0 2px 10px rgba(0,0,0,0.6);
-}
-
-:root.dark .open{color:#4caf50}
-:root.dark .closed{color:#e53935}
-:root.light .open{color:#2e7d32}
-:root.light .closed{color:#c62828}
-
-.timeline{
-  margin-top:8px;
-  height:22px;
-  border-radius:6px;
-  position:relative;
-  overflow:hidden;
-}
-:root.dark .timeline{background:#333}
-:root.light .timeline{background:#ddd}
-
-.seg{
-  position:absolute;
-  top:0;
-  height:100%;
-  transition:filter 0.2s ease;
-}
-.seg:hover{
-  filter:brightness(1.25);
-}
-
-.pre{background:#9c27b0}
-.regular{background:#4caf50}
-.after{background:#2196f3}
-.overnight{background:#0d1b3d}
-
-.now{
-  position:absolute;
-  top:-10px;
-  bottom:-10px;
-  width:4px;
-  background:#ff0000;
-  box-shadow:0 0 6px #ff0000;
-  transition:left 1s linear;
-}
-.now:after{
-  content:"▼";
-  position:absolute;
-  top:-16px;
-  left:-7px;
-  color:#ff0000;
-  font-size:16px;
-}
-
-#legend{
-  margin-top:40px;
-  font-size:16px;
-}
-.legend-item{
-  display:inline-flex;
-  align-items:center;
-  margin:0 12px;
-}
-.legend-box{
-  width:18px;
-  height:18px;
-  margin-right:6px;
-  border-radius:4px;
-}
-
-#shareContainer{
-  margin-top:30px;
-  text-align:center;
-}
-
-#shareBtn{
-  padding:10px 20px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:16px;
-}
-
-:root.dark #shareBtn{
-  background:#444;
-  color:#fff;
-}
-
-:root.light #shareBtn{
-  background:#ddd;
-  color:#000;
-}
-</style>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
   /* THEME TOGGLE */
   const root = document.documentElement;
   const toggle = document.getElementById("themeToggle");
-
   root.classList.add("dark");
   toggle.textContent = "Light";
-
   toggle.addEventListener("click", () => {
-    if(root.classList.contains("dark")){
+    if (root.classList.contains("dark")) {
       root.classList.remove("dark");
       root.classList.add("light");
       toggle.textContent = "Dark";
@@ -239,210 +101,80 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* SHARE BUTTON */
   const shareBtn = document.getElementById("shareBtn");
-
-  function fallbackPrompt(url){
-    alert("Share this link:\n\n" + url);
-  }
-
+  function fallbackPrompt(url){ alert("Share this link:\n\n" + url); }
   shareBtn.addEventListener("click", () => {
     const url = window.location.href;
-    const shareData = {
-      title: "Market Clock",
-      text: "Check out this live global market clock!",
-      url
-    };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(() => {});
-      return;
-    }
-
+    const shareData = { title: "Market Clock", text: "Check out this live global market clock!", url };
+    if (navigator.share) { navigator.share(shareData).catch(()=>{}); return; }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url)
-        .then(() => {
-          const prev = shareBtn.textContent;
-          shareBtn.textContent = "Copied!";
-          setTimeout(() => shareBtn.textContent = prev, 1500);
-        })
-        .catch(() => fallbackPrompt(url));
-    } else {
-      fallbackPrompt(url);
-    }
+      navigator.clipboard.writeText(url).then(()=> {
+        const prev = shareBtn.textContent;
+        shareBtn.textContent = "Copied!";
+        setTimeout(()=> shareBtn.textContent = prev, 1500);
+      }).catch(()=> fallbackPrompt(url));
+    } else { fallbackPrompt(url); }
   });
 
-  /* BASIC TIME HELPERS */
+  /* TIME HELPERS */
   function utcSec(){
     const d=new Date();
     return d.getUTCHours()*3600 + d.getUTCMinutes()*60 + d.getUTCSeconds();
   }
   function pct(x){ return (x/86400)*100; }
-  function format(sec){
-    sec=Math.max(0,Math.floor(sec));
-    return Math.floor(sec/3600)+"h "+Math.floor((sec%3600)/60)+"m "+(sec%60)+"s";
-  }
-  function inRange(t,a,b){
-    if(b>a) return t>=a && t<b;
-    return t>=a || t<b;
+  function format(sec){ sec=Math.max(0,Math.floor(sec)); return Math.floor(sec/3600)+"h "+Math.floor((sec%3600)/60)+"m "+(sec%60)+"s"; }
+  function inRange(t,a,b){ if(b>a) return t>=a && t<b; return t>=a || t<b; }
+  function secsToHMS(sec){
+    sec = Math.floor(sec);
+    const h = Math.floor(sec/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s = sec%60;
+    return {h,m,s};
   }
 
-  /* MARKETS (ACCURATE HOURS + SPLIT SESSIONS) */
+  /* MARKETS */
   const markets = [
-    // United States (pre + regular + after)
-    {
-      id:"nyse",
-      name:"New York (NYSE & NASDAQ)",
-      tz:"America/New_York",
-      pre: 13*3600,          // 09:00 ET
-      open: 14.5*3600,       // 09:30 ET
-      close: 21*3600,        // 16:00 ET
-      after: 22*3600         // 17:00 ET
-    },
-
-    // United Kingdom (continuous)
-    {
-      id:"lse",
-      name:"London (LSE)",
-      tz:"Europe/London",
-      open: 8*3600,
-      close: 16.5*3600
-    },
-
-    // Germany (continuous)
-    {
-      id:"xetra",
-      name:"Frankfurt (Xetra)",
-      tz:"Europe/Berlin",
-      open: 7*3600,
-      close: 15.5*3600
-    },
-
-    // France (continuous)
-    {
-      id:"paris",
-      name:"Euronext Paris",
-      tz:"Europe/Paris",
-      open: 7*3600,
-      close: 15.5*3600
-    },
-
-    // Japan (split session)
-    {
-      id:"tse",
-      name:"Tokyo (TSE)",
-      tz:"Asia/Tokyo",
-      open1: 9*3600,
-      close1: 11.5*3600,
-      open2: 12.5*3600,
-      close2: 15*3600
-    },
-
-    // Hong Kong (split session)
-    {
-      id:"hkex",
-      name:"Hong Kong (HKEX)",
-      tz:"Asia/Hong_Kong",
-      open1: 9.5*3600,
-      close1: 12*3600,
-      open2: 13*3600,
-      close2: 16*3600
-    },
-
-    // China (split session)
-    {
-      id:"sse",
-      name:"Shanghai (SSE)",
-      tz:"Asia/Shanghai",
-      open1: 9*3600,
-      close1: 11.5*3600,
-      open2: 13*3600,
-      close2: 15*3600
-    },
-
-    // Singapore (split session)
-    {
-    id:"sgx",
-    name:"Singapore (SGX)",
-    tz:"Asia/Singapore",
-    open1: 9*3600,
-    close1: 12*3600,
-    open2: 13*3600,
-    close2: 17*3600
-    },
-
-
-    // India (continuous)
-    {
-      id:"nse",
-      name:"India (NSE)",
-      tz:"Asia/Kolkata",
-      open: 9.25*3600,
-      close: 15.5*3600
-    },
-
-    // Australia (continuous)
-    {
-      id:"asx",
-      name:"Sydney (ASX)",
-      tz:"Australia/Sydney",
-      open: 23*3600,
-      close: 5*3600
-    },
-
-    // Canada (continuous)
-    {
-      id:"tsx",
-      name:"Toronto (TSX)",
-      tz:"America/Toronto",
-      open: 14.5*3600,
-      close: 21*3600
-    },
-
-    // Brazil (continuous)
-    {
-      id:"b3",
-      name:"Brazil (B3)",
-      tz:"America/Sao_Paulo",
-      open: 12*3600,
-      close: 20*3600
-    }
+    { id:"nyse", name:"New York (NYSE & NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600 },
+    { id:"lse", name:"London (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600 },
+    { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 7*3600, close: 15.5*3600 },
+    { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 7*3600, close: 15.5*3600 },
+    { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 9*3600, close1: 11.5*3600, open2: 12.5*3600, close2: 15*3600 },
+    { id:"hkex", name:"Hong Kong (HKEX)", tz:"Asia/Hong_Kong", open1: 9.5*3600, close1: 12*3600, open2: 13*3600, close2: 16*3600 },
+    { id:"sse", name:"Shanghai (SSE)", tz:"Asia/Shanghai", open1: 9*3600, close1: 11.5*3600, open2: 13*3600, close2: 15*3600 },
+    { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open1: 9*3600, close1: 12*3600, open2: 13*3600, close2: 17*3600 },
+    { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 9.25*3600, close: 15.5*3600 },
+    { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23*3600, close: 5*3600 },
+    { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600 },
+    { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 20*3600 }
   ];
 
-  /* TIMEZONE TOGGLE (GLOBAL) */
+  /* TIMEZONE TOGGLE */
   let showLocalMarketTime = false;
   const tzToggle = document.getElementById("tzToggle");
-
   tzToggle.addEventListener("click", () => {
     showLocalMarketTime = !showLocalMarketTime;
-    tzToggle.textContent = showLocalMarketTime
-      ? "Show Your Timezone"
-      : "Show Market Local Times";
+    tzToggle.textContent = showLocalMarketTime ? "Show Your Timezone" : "Show Market Local Times";
     updateMarkets();
   });
 
   /* STAGE LOGIC */
   function getStage(now, m) {
-    // US markets
     if (m.pre !== undefined) {
       if (inRange(now, m.pre, m.open)) return "Pre‑Market";
       if (inRange(now, m.open, m.close)) return "Regular Hours";
       if (inRange(now, m.close, m.after)) return "After Hours";
       return "Overnight";
     }
-
-    // Split-session markets
     if (m.open1 !== undefined) {
       if (inRange(now, m.open1, m.close1)) return "Morning Session";
       if (inRange(now, m.close1, m.open2)) return "Lunch Break";
       if (inRange(now, m.open2, m.close2)) return "Afternoon Session";
       return "Overnight";
     }
-
-    // Continuous markets
     if (inRange(now, m.open, m.close)) return "Regular Hours";
     return "Overnight";
   }
 
-  /* DRAW SEGMENT (WRAP‑AROUND SAFE) */
+  /* TIMELINE */
   function drawSeg(a,b,cls){
     if(b>a){
       return `<div class="seg ${cls}" style="left:${pct(a)}%;width:${pct(b-a)}%"></div>`;
@@ -451,12 +183,8 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="seg ${cls}" style="left:0;width:${pct(b)}%"></div>`;
     }
   }
-
-  /* DYNAMIC TIMELINE BUILDER */
   function drawTimeline(m) {
     let html = "";
-
-    // US markets
     if (m.pre !== undefined) {
       html += drawSeg(m.pre, m.open, "pre");
       html += drawSeg(m.open, m.close, "regular");
@@ -464,55 +192,43 @@ document.addEventListener("DOMContentLoaded", () => {
       html += drawSeg(m.after, m.pre, "overnight");
       return html;
     }
-
-    // Split-session markets
     if (m.open1 !== undefined) {
       html += drawSeg(m.open1, m.close1, "regular");
-      html += drawSeg(m.close1, m.open2, "overnight"); // lunch gap
+      html += drawSeg(m.close1, m.open2, "overnight");
       html += drawSeg(m.open2, m.close2, "regular");
       html += drawSeg(m.close2, m.open1, "overnight");
       return html;
     }
-
-    // Continuous markets
     html += drawSeg(m.open, m.close, "regular");
     html += drawSeg(m.close, m.open, "overnight");
     return html;
   }
 
-  /* COUNTDOWN LOGIC */
+  /* COUNTDOWN */
   function nextEvent(now, m) {
     const add = t => (t - now + 86400) % 86400;
-
-    // US markets
     if (m.pre !== undefined) {
       if (inRange(now, m.pre, m.open)) return ["Opens in", add(m.open)];
       if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
       if (inRange(now, m.close, m.after)) return ["After‑hours ends in", add(m.after)];
       return ["Opens in", add(m.pre)];
     }
-
-    // Split-session markets
     if (m.open1 !== undefined) {
       if (inRange(now, m.open1, m.close1)) return ["Closes in", add(m.close1)];
       if (inRange(now, m.close1, m.open2)) return ["Reopens in", add(m.open2)];
       if (inRange(now, m.open2, m.close2)) return ["Closes in", add(m.close2)];
       return ["Opens in", add(m.open1)];
     }
-
-    // Continuous markets
     if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
     return ["Opens in", add(m.open)];
   }
 
   /* INITIAL RENDER */
   const marketsContainer = document.getElementById("markets");
-
   markets.forEach(m => {
     const wrapper = document.createElement("div");
     wrapper.className = "market closed";
     wrapper.id = `market-${m.id}`;
-
     wrapper.innerHTML = `
       <div class="market-header">
         <strong class="market-name">${m.name}</strong>:
@@ -526,15 +242,119 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="now"></div>
       </div>
     `;
-
     marketsContainer.appendChild(wrapper);
+  });
+
+  /* TRELLO‑STYLE DRAG & DROP (single clean implementation) */
+  let draggedEl = null;
+  let placeholder = null;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  function enableDragAndDrop() {
+    document.querySelectorAll(".market").forEach(card => {
+      card.style.touchAction = "none";
+      card.addEventListener("pointerdown", e => {
+        draggedEl = card;
+        draggedEl.classList.add("dragging");
+        const rect = draggedEl.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        placeholder = document.createElement("div");
+        placeholder.className = "market placeholder";
+        placeholder.style.height = rect.height + "px";
+        draggedEl.parentNode.insertBefore(placeholder, draggedEl.nextSibling);
+        draggedEl.style.position = "absolute";
+        draggedEl.style.width = rect.width + "px";
+        draggedEl.style.left = rect.left + "px";
+        draggedEl.style.top = rect.top + "px";
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+      });
+    });
+  }
+
+  function onPointerMove(e) {
+  if (!draggedEl) return;
+
+  draggedEl.style.left = e.clientX - offsetX + "px";
+  draggedEl.style.top = e.clientY - offsetY + "px";
+
+  // Temporarily hide the dragged element so elementFromPoint returns what's underneath
+  draggedEl.style.visibility = "hidden";
+  const elBelow = document.elementFromPoint(e.clientX, e.clientY);
+  draggedEl.style.visibility = "";
+
+  const target = elBelow ? elBelow.closest(".market") : null;
+
+  if (target && !target.classList.contains("dragging") && target.parentNode) {
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    if (e.clientY < midY) {
+      target.parentNode.insertBefore(placeholder, target);
+    } else {
+      target.parentNode.insertBefore(placeholder, target.nextSibling);
+    }
+  } else {
+    const container = document.getElementById("markets");
+    if (container && container !== placeholder.parentNode) {
+      container.appendChild(placeholder);
+    } else if (!placeholder.parentNode) {
+      container.appendChild(placeholder);
+    }
+  }
+}
+
+  function onPointerUp() {
+    if (!draggedEl) return;
+    draggedEl.classList.remove("dragging");
+    draggedEl.style.position = "";
+    draggedEl.style.left = "";
+    draggedEl.style.top = "";
+    draggedEl.style.width = "";
+    placeholder.parentNode.insertBefore(draggedEl, placeholder);
+    placeholder.remove();
+    placeholder = null;
+    saveOrder();
+    draggedEl = null;
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+  }
+
+  function saveOrder() {
+    const ids = [...document.querySelectorAll(".market")].map(el => el.id);
+    localStorage.setItem("marketOrder", JSON.stringify(ids));
+  }
+
+  function loadOrder() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("marketOrder") || "[]");
+      if (!saved.length) return;
+      const container = document.getElementById("markets");
+      saved.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) container.appendChild(el);
+      });
+    } catch (e) {}
+  }
+
+  document.getElementById("resetOrderBtn").addEventListener("click", () => {
+    localStorage.removeItem("marketOrder");
+    const container = document.getElementById("markets");
+    container.innerHTML = "";
+    markets.forEach(m => {
+      const wrapper = document.getElementById(`market-${m.id}`);
+      if (wrapper) container.appendChild(wrapper);
+    });
+    enableDragAndDrop();
   });
 
   /* UPDATE LOOP */
   function updateMarkets(){
     const now = utcSec();
     const day = new Date().getUTCDay();
-
+    const openList = document.getElementById("openMarketsList");
+    openList.innerHTML = "";
     markets.forEach(m => {
       const el = document.getElementById(`market-${m.id}`);
       const statusEl = el.querySelector(".market-status");
@@ -542,11 +362,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const countdownLabelEl = el.querySelector(".market-countdown-label");
       const stageEl = el.querySelector(".market-stage");
       const nowLine = el.querySelector(".now");
-
       const stage = getStage(now, m);
       const [label, secs] = nextEvent(now, m);
-
-      // Open/closed flag (weekends closed)
       let isOpen = false;
       if (day !== 0 && day !== 6) {
         if (m.pre !== undefined) {
@@ -557,35 +374,42 @@ document.addEventListener("DOMContentLoaded", () => {
           isOpen = inRange(now, m.open, m.close);
         }
       }
-
       el.classList.toggle("open", isOpen);
       el.classList.toggle("closed", !isOpen);
-
       statusEl.textContent = isOpen ? "OPEN" : "CLOSED";
       countdownLabelEl.textContent = label;
       countdownEl.textContent = format(secs);
 
       if (showLocalMarketTime && m.tz) {
-        const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
-        let openStr = "";
-        let closeStr = "";
-
         if (m.open1 !== undefined) {
-          const o1 = new Date(Date.UTC(1970,0,1,0,0,m.open1)).toLocaleTimeString([], opts);
-          const c1 = new Date(Date.UTC(1970,0,1,0,0,m.close1)).toLocaleTimeString([], opts);
-          const o2 = new Date(Date.UTC(1970,0,1,0,0,m.open2)).toLocaleTimeString([], opts);
-          const c2 = new Date(Date.UTC(1970,0,1,0,0,m.close2)).toLocaleTimeString([], opts);
-          stageEl.textContent = `Stage: ${stage} (Local: ${o1}–${c1}, ${o2}–${c2})`;
+          const o1 = secsToHMS(m.open1);
+          const c1 = secsToHMS(m.close1);
+          const o2 = secsToHMS(m.open2);
+          const c2 = secsToHMS(m.close2);
+          const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
+          const str1 = new Date(Date.UTC(1970,0,1,o1.h,o1.m,o1.s)).toLocaleTimeString([], opts);
+          const str2 = new Date(Date.UTC(1970,0,1,c1.h,c1.m,c1.s)).toLocaleTimeString([], opts);
+          const str3 = new Date(Date.UTC(1970,0,1,o2.h,o2.m,o2.s)).toLocaleTimeString([], opts);
+          const str4 = new Date(Date.UTC(1970,0,1,c2.h,c2.m,c2.s)).toLocaleTimeString([], opts);
+          stageEl.textContent = `Stage: ${stage} (Local: ${str1}–${str2}, ${str3}–${str4})`;
         } else {
-          const o = new Date(Date.UTC(1970,0,1,0,0,m.open)).toLocaleTimeString([], opts);
-          const c = new Date(Date.UTC(1970,0,1,0,0,m.close)).toLocaleTimeString([], opts);
-          stageEl.textContent = `Stage: ${stage} (Local: ${o}–${c})`;
+          const o = secsToHMS(m.open);
+          const c = secsToHMS(m.close);
+          const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
+          const so = new Date(Date.UTC(1970,0,1,o.h,o.m,o.s)).toLocaleTimeString([], opts);
+          const sc = new Date(Date.UTC(1970,0,1,c.h,c.m,c.s)).toLocaleTimeString([], opts);
+          stageEl.textContent = `Stage: ${stage} (Local: ${so}–${sc})`;
         }
       } else {
         stageEl.textContent = "Stage: " + stage;
       }
 
       nowLine.style.left = pct(now) + "%";
+      if (isOpen) {
+        const li = document.createElement("li");
+        li.textContent = el.querySelector(".market-name").textContent;
+        openList.appendChild(li);
+      }
     });
   }
 
@@ -593,21 +417,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const d=new Date();
     document.getElementById("clock").textContent=d.toLocaleTimeString();
     document.getElementById("date").textContent=d.toDateString();
-
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.getElementById("timezone").textContent = "Your Timezone: " + tz;
   }
 
+  loadOrder();
+  enableDragAndDrop();
   updateTop();
   updateMarkets();
-  setInterval(()=>{
-    updateTop();
-    updateMarkets();
-  },1000);
-
+  setInterval(()=>{ updateTop(); updateMarkets(); },1000);
 });
 </script>
-</head>
-<body>
 </body>
 </html>
