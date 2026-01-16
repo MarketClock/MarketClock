@@ -5,7 +5,7 @@
 <title>Market Clock</title>
 <style>
 /* (same CSS as your original, kept concise) */
-* { transition: background-color 0.4s ease, color 0.4s ease; } 
+* { transition: background-color 0.4s ease, color 0.4s ease; }
 :root.dark body{ background:#111; color:#fff; }
 :root.light body{ background:#f5f5f5; color:#111; }
 body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align:center; }
@@ -39,9 +39,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 :root.dark #resetOrderBtn { background: #444; color: #fff; } :root.light #resetOrderBtn { background: #ddd; color: #000; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
 :root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
-#openMarketsList { list-style: none; padding-left: 0; margin: 0; } #openMarketsList li { margin-bottom: 6px; }
+#openMarketsList, #openingSoonList { list-style: none; padding-left: 0; margin: 0; }
+#openMarketsList li, #openingSoonList li { margin-bottom: 6px; }
 .market.dragging { opacity: 0.6; transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 10; }
 .market.placeholder { border: 2px dashed #888; background: transparent !important; height: 80px; }
+.open-dot { margin-left:6px; font-size:0.95em; vertical-align:middle; }
 </style>
 </head>
 <body>
@@ -60,6 +62,8 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 <div id="openMarketsSidebar">
   <h3>Open Markets</h3>
   <ul id="openMarketsList"></ul>
+  <h3>Opening Soon</h3>
+<ul id="openingSoonList"></ul>
 </div>
 
 <!-- Markets container -->
@@ -144,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 9.25*3600, close: 15.5*3600 },
     { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23*3600, close: 5*3600 },
     { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600 },
-    { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 20*3600 } 
+    { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 20*3600 }
   ];
 
   /* TIMEZONE TOGGLE */
@@ -355,6 +359,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const day = new Date().getUTCDay();
     const openList = document.getElementById("openMarketsList");
     openList.innerHTML = "";
+    const openingSoonList = document.getElementById("openingSoonList");
+openingSoonList.innerHTML = "";
     markets.forEach(m => {
       const el = document.getElementById(`market-${m.id}`);
       const statusEl = el.querySelector(".market-status");
@@ -364,6 +370,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const nowLine = el.querySelector(".now");
       const stage = getStage(now, m);
       const [label, secs] = nextEvent(now, m);
+      // Add to "Opening Soon" if opening within the next hour
+if (label === "Opens in" && secs > 0 && secs <= 3600) {
+  const soonLi = document.createElement("li");
+  soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
+  openingSoonList.appendChild(soonLi);
+}
       let isOpen = false;
       if (day !== 0 && day !== 6) {
         if (m.pre !== undefined) {
@@ -406,10 +418,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       nowLine.style.left = pct(now) + "%";
       if (isOpen) {
-        const li = document.createElement("li");
-        li.textContent = el.querySelector(".market-name").textContent;
-        openList.appendChild(li);
-      }
+const li = document.createElement("li");
+  const name = el.querySelector(".market-name").textContent;
+  li.innerHTML = name + ' <span class="open-dot" aria-hidden="true">🟢</span>';
+  openList.appendChild(li);
+}
     });
   }
 
