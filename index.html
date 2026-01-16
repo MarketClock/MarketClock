@@ -222,19 +222,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* MARKETS */
   const markets = [
-    { id:"nyse", name:"New York (NYSE & NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600 },
-    { id:"lse", name:"London (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600 },
-    { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 7*3600, close: 15.5*3600 },
-    { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 7*3600, close: 15.5*3600 },
-    { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 9*3600, close1: 11.5*3600, open2: 12.5*3600, close2: 15*3600 },
-    { id:"hkex", name:"Hong Kong (HKEX)", tz:"Asia/Hong_Kong", open1: 9.5*3600, close1: 12*3600, open2: 13*3600, close2: 16*3600 },
-    { id:"sse", name:"Shanghai (SSE)", tz:"Asia/Shanghai", open1: 9*3600, close1: 11.5*3600, open2: 13*3600, close2: 15*3600 },
-    { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open1: 9*3600, close1: 12*3600, open2: 13*3600, close2: 17*3600 },
-    { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 9.25*3600, close: 15.5*3600 },
-    { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23*3600, close: 5*3600 },
-    { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600 },
-    { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 20*3600 }
-  ];
+  { id:"nyse", name:"New York (NYSE & NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600, localOpen: "09:30", localClose: "16:00" },
+  { id:"lse", name:"London (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600, localOpen: "08:00", localClose: "16:30" },
+  { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 17.5*3600, localOpen: "09:00", localClose: "17:30" },
+  { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 8*3600, close: 17.5*3600, localOpen: "09:00", localClose: "17:30" },
+  { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 0*3600, close1: 11.5*3600, open2: 12.5*3600, close2: 15*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00" },
+  { id:"hkex", name:"Hong Kong (HKEX)", tz:"Asia/Hong_Kong", open1: 1*3600, close1: 4*3600, open2: 5*3600, close2: 8*3600, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00" },
+  { id:"sse", name:"Shanghai (SSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00" },
+  { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open: 1*3600, close: 9*3600, localOpen: "09:00", localClose: "17:00" },
+  { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 3.5*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30" },
+  { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23.983*3600, close: 5*3600, localOpen: "09:59", localClose: "16:00" },
+  { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00" },
+  { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 17.917*3600, localOpen: "10:00", localClose: "17:55" }
+];
 
   /* TIMEZONE TOGGLE */
   let showLocalMarketTime = false;
@@ -300,7 +300,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (inRange(now, m.pre, m.open)) return ["Opens in", add(m.open)];
       if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
       if (inRange(now, m.close, m.after)) return ["After‑hours ends in", add(m.after)];
-      // BEFORE pre-market: prefer showing time until regular open for NYSE (avoid pre-market confusion)
       return m.id === "nyse" ? ["Opens in", add(m.open)] : ["Opens in", add(m.pre)];
     }
     if (m.open1 !== undefined) {
@@ -354,10 +353,10 @@ document.addEventListener("DOMContentLoaded", () => {
         placeholder.className = "market placeholder";
         placeholder.style.height = rect.height + "px";
         draggedEl.parentNode.insertBefore(placeholder, draggedEl.nextSibling);
-        draggedEl.style.position = "absolute";
+        draggedEl.style.position = "fixed";
+        draggedEl.style.zIndex = 10000;
         draggedEl.style.width = rect.width + "px";
-        draggedEl.style.left = rect.left + "px";
-        draggedEl.style.top = rect.top + "px";
+        draggedEl.style.pointerEvents = "none";
         document.addEventListener("pointermove", onPointerMove);
         document.addEventListener("pointerup", onPointerUp);
       });
@@ -367,10 +366,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function onPointerMove(e) {
   if (!draggedEl) return;
 
-  draggedEl.style.left = e.clientX - offsetX + "px";
-  draggedEl.style.top = e.clientY - offsetY + "px";
+  draggedEl.style.left = (e.clientX - offsetX) + "px";
+  draggedEl.style.top = (e.clientY - offsetY) + "px";
 
-  // Temporarily hide the dragged element so elementFromPoint returns what's underneath
   draggedEl.style.visibility = "hidden";
   const elBelow = document.elementFromPoint(e.clientX, e.clientY);
   draggedEl.style.visibility = "";
@@ -402,8 +400,12 @@ document.addEventListener("DOMContentLoaded", () => {
     draggedEl.style.left = "";
     draggedEl.style.top = "";
     draggedEl.style.width = "";
-    placeholder.parentNode.insertBefore(draggedEl, placeholder);
-    placeholder.remove();
+    draggedEl.style.zIndex = "";
+    draggedEl.style.pointerEvents = "";
+    if (placeholder && placeholder.parentNode) {
+      placeholder.parentNode.insertBefore(draggedEl, placeholder);
+      placeholder.remove();
+    }
     placeholder = null;
     saveOrder();
     draggedEl = null;
@@ -456,12 +458,11 @@ openingSoonList.innerHTML = "";
       const nowLine = el.querySelector(".now");
       const stage = getStage(now, m);
       const [label, secs] = nextEvent(now, m);
-      // Add to "Opening Soon" if opening within the next hour
-if (label === "Opens in" && secs > 0 && secs <= 3600) {
-  const soonLi = document.createElement("li");
-  soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
-  openingSoonList.appendChild(soonLi);
-}
+      if (label === "Opens in" && secs > 0 && secs <= 3600) {
+        const soonLi = document.createElement("li");
+        soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
+        openingSoonList.appendChild(soonLi);
+      }
       let isOpen = false;
       if (day !== 0 && day !== 6) {
         if (m.pre !== undefined) {
@@ -480,23 +481,11 @@ if (label === "Opens in" && secs > 0 && secs <= 3600) {
 
       if (showLocalMarketTime && m.tz) {
         if (m.open1 !== undefined) {
-          const o1 = secsToHMS(m.open1);
-          const c1 = secsToHMS(m.close1);
-          const o2 = secsToHMS(m.open2);
-          const c2 = secsToHMS(m.close2);
-          const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
-          const str1 = new Date(Date.UTC(1970,0,1,o1.h,o1.m,o1.s)).toLocaleTimeString([], opts);
-          const str2 = new Date(Date.UTC(1970,0,1,c1.h,c1.m,c1.s)).toLocaleTimeString([], opts);
-          const str3 = new Date(Date.UTC(1970,0,1,o2.h,o2.m,o2.s)).toLocaleTimeString([], opts);
-          const str4 = new Date(Date.UTC(1970,0,1,c2.h,c2.m,c2.s)).toLocaleTimeString([], opts);
-          stageEl.textContent = `Stage: ${stage} (Local: ${str1}–${str2}, ${str3}–${str4})`;
+          stageEl.textContent = `Stage: ${stage} (Local: ${m.localOpen1}–${m.localClose1}, ${m.localOpen2}–${m.localClose2})`;
+        } else if (m.localOpen !== undefined) {
+          stageEl.textContent = `Stage: ${stage} (Local: ${m.localOpen}–${m.localClose})`;
         } else {
-          const o = secsToHMS(m.open);
-          const c = secsToHMS(m.close);
-          const opts = { hour: "2-digit", minute: "2-digit", timeZone: m.tz };
-          const so = new Date(Date.UTC(1970,0,1,o.h,o.m,o.s)).toLocaleTimeString([], opts);
-          const sc = new Date(Date.UTC(1970,0,1,c.h,c.m,c.s)).toLocaleTimeString([], opts);
-          stageEl.textContent = `Stage: ${stage} (Local: ${so}–${sc})`;
+          stageEl.textContent = `Stage: ${stage}`;
         }
       } else {
         stageEl.textContent = "Stage: " + stage;
@@ -504,11 +493,11 @@ if (label === "Opens in" && secs > 0 && secs <= 3600) {
 
       nowLine.style.left = pct(now) + "%";
       if (isOpen) {
-const li = document.createElement("li");
-  const name = el.querySelector(".market-name").textContent;
-  li.innerHTML = name + ' <span class="open-dot" aria-hidden="true">🟢</span>';
-  openList.appendChild(li);
-}
+        const li = document.createElement("li");
+        const name = el.querySelector(".market-name").textContent;
+        li.innerHTML = name + ' <span class="open-dot" aria-hidden="true">🟢</span>';
+        openList.appendChild(li);
+      }
     });
   }
 
