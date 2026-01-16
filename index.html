@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Market Clock</title>
 <style>
 /* (same CSS as your original, kept concise) */
@@ -44,6 +45,90 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 .market.dragging { opacity: 0.6; transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 10; }
 .market.placeholder { border: 2px dashed #888; background: transparent !important; height: 80px; }
 .open-dot { margin-left:6px; font-size:0.95em; vertical-align:middle; }
+
+/* MOBILE / SMALL SCREEN OPTIMIZATIONS */
+@media (max-width: 900px) {
+  body {
+    padding: 12px;
+    text-align: left;
+  }
+  /* move top buttons into flow so they don't overlap content */
+  #themeToggle, #tzToggle {
+    position: static;
+    display: inline-block;
+    margin: 6px 8px;
+    right: auto;
+    top: auto;
+  }
+  /* make title and timezone stack compactly */
+  #pageTitle { font-size: 20px; margin-top: 8px; }
+  #timezone { font-size: 14px; margin-bottom: 10px; }
+
+  /* Sidebar becomes a full-width block above markets */
+  #openMarketsSidebar {
+    position: static;
+    left: auto;
+    top: auto;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #openMarketsSidebar h3 { margin: 0; font-size: 15px; }
+  #openMarketsList, #openingSoonList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #openMarketsList li, #openingSoonList li {
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.03);
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+  }
+
+  /* markets adjust to single column and tighter spacing */
+  .market-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .market {
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 8px;
+  }
+  .timeline { height: 28px; }
+
+  /* reduce clock size */
+  #clock { font-size: 36px; }
+  #date { font-size: 13px; }
+
+  /* legend and large controls moved to compact layout */
+  #legend { display: none; }
+  #shareContainer, #reorderControls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: stretch; }
+  #shareBtn, #resetOrderBtn { flex: 1; }
+
+  /* ensure placeholder and dragging layers behave nicely */
+  .market.dragging { position: fixed; left: 0; right: 0; margin: 0 auto; width: calc(100% - 24px); }
+  .market.placeholder { height: 72px; }
+
+  /* ensure the markets container has proper padding on small screens */
+  #markets { padding-top: 6px; }
+
+  /* avoid fixed overlapping on very small screens */
+  @media (max-width: 420px) {
+    #themeToggle, #tzToggle { font-size: 13px; padding: 6px 10px; }
+    #clock { font-size: 28px; }
+    body { padding: 10px; }
+  }
+}
 </style>
 </head>
 <body>
