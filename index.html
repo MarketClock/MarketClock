@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
-<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
- 
 <title>Market Clock</title>
 <style>
 /* (same CSS as your original, kept concise) */
@@ -23,8 +20,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 #markets{ max-width:1000px; margin:0 auto; text-align:left; }
 .market-grid{ display:grid; grid-template-columns:1fr; gap:24px; }
 @media (min-width:900px){ .market-grid{ grid-template-columns:1fr 1fr; column-gap:28px; row-gap:24px; } }
-.market{ font-size:18px; padding:16px 18px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.25); background:rgba(0,0,0,0.1); position:relative; }
-:root.light .market{ background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.market{ font-size:18px; padding:16px 18px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.25); background:rgba(0,0,0,0.1); position:relative; user-select: none; }:root.light .market{ background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 :root.dark .market{ background:#1a1a1a; box-shadow:0 2px 10px rgba(0,0,0,0.6); }
 :root.dark .open{color:#4caf50} :root.dark .closed{color:#e53935}
 :root.light .open{color:#2e7d32} :root.light .closed{color:#c62828}
@@ -337,74 +333,115 @@ document.addEventListener("DOMContentLoaded", () => {
     marketsContainer.appendChild(wrapper);
   });
 
-  /* TRELLO‑STYLE DRAG & DROP (single clean implementation) */
+   /* TRELLO‑STYLE DRAG & DROP with HOLD-TO-DRAG on touch */
   let draggedEl = null;
   let placeholder = null;
   let offsetX = 0;
   let offsetY = 0;
+  let holdTimer = null;
+  let isDragging = false;
+  let lastX = 0;
+  let lastY = 0;
 
   function enableDragAndDrop() {
     document.querySelectorAll(".market").forEach(card => {
       card.style.touchAction = "none";
-      card.addEventListener("pointerdown", e => {
-        draggedEl = card;
-        draggedEl.classList.add("dragging");
-        const rect = draggedEl.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        placeholder = document.createElement("div");
-        placeholder.className = "market placeholder";
-        placeholder.style.height = rect.height + "px";
-        draggedEl.parentNode.insertBefore(placeholder, draggedEl.nextSibling);
-        draggedEl.style.position = "fixed";
-        draggedEl.style.zIndex = 10000;
-        draggedEl.style.width = rect.width + "px";
-        draggedEl.style.pointerEvents = "none";
-        document.addEventListener("pointermove", onPointerMove);
-        document.addEventListener("pointerup", onPointerUp);
-      });
+      card.style.cursor = "grab";
+      card.addEventListener("pointerdown", onPointerDown);
     });
   }
 
-  function onPointerMove(e) {
-  if (!draggedEl) return;
+    function onPointerDown(e) {
+    e.preventDefault();
+    const card = e.currentTarget;
+    lastX = e.clientX;
+    lastY = e.clientY;
 
-  draggedEl.style.left = (e.clientX - offsetX) + "px";
-  draggedEl.style.top = (e.clientY - offsetY) + "px";
+    // On touch devices, require a 500ms hold. On desktop (mouse), drag immediately.
+    const isTouch = e.pointerType === "touch";
+    const holdDelay = isTouch ? 500 : 0;
 
-  draggedEl.style.visibility = "hidden";
-  const elBelow = document.elementFromPoint(e.clientX, e.clientY);
-  draggedEl.style.visibility = "";
+    holdTimer = setTimeout(() => {
+      draggedEl = card;
+      isDragging = true;
+      draggedEl.classList.add("dragging");
+      draggedEl.style.cursor = "grabbing";
+      const rect = draggedEl.getBoundingClientRect();
+      offsetX = lastX - rect.left;
+      offsetY = lastY - rect.top;
+      placeholder = document.createElement("div");
+      placeholder.className = "market placeholder";
+      placeholder.style.height = rect.height + "px";
+      draggedEl.parentNode.insertBefore(placeholder, draggedEl.nextSibling);
+      draggedEl.style.position = "fixed";
+      draggedEl.style.zIndex = 10000;
+      draggedEl.style.width = rect.width + "px";
+      draggedEl.style.pointerEvents = "none";
+      document.body.style.userSelect = "none";
+      document.addEventListener("pointermove", onPointerMove);
+      document.addEventListener("pointerup", onPointerUp);
+    }, holdDelay);
+  }
 
-  const target = elBelow ? elBelow.closest(".market") : null;
-
-  if (target && !target.classList.contains("dragging") && target.parentNode) {
-    const rect = target.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    if (e.clientY < midY) {
-      target.parentNode.insertBefore(placeholder, target);
-    } else {
-      target.parentNode.insertBefore(placeholder, target.nextSibling);
+    function onPointerMove(e) {
+    if (holdTimer !== null) {
+      // If hold hasn't triggered yet, check if user moved too far (cancel hold)
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      if (Math.sqrt(dx * dx + dy * dy) > 10) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      return;
     }
-  } else {
-    const container = document.getElementById("markets");
-    if (container && container !== placeholder.parentNode) {
-      container.appendChild(placeholder);
-    } else if (!placeholder.parentNode) {
-      container.appendChild(placeholder);
+
+    if (!isDragging || !draggedEl) return;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    draggedEl.style.left = (e.clientX - offsetX) + "px";
+    draggedEl.style.top = (e.clientY - offsetY) + "px";
+
+    draggedEl.style.visibility = "hidden";
+    const elBelow = document.elementFromPoint(e.clientX, e.clientY);
+    draggedEl.style.visibility = "";
+
+    const target = elBelow ? elBelow.closest(".market") : null;
+
+    if (target && !target.classList.contains("dragging") && target.parentNode) {
+      const rect = target.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        target.parentNode.insertBefore(placeholder, target);
+      } else {
+        target.parentNode.insertBefore(placeholder, target.nextSibling);
+      }
+    } else {
+      const container = document.getElementById("markets");
+      if (container && container !== placeholder.parentNode) {
+        container.appendChild(placeholder);
+      } else if (!placeholder.parentNode) {
+        container.appendChild(placeholder);
+      }
     }
   }
-}
 
   function onPointerUp() {
-    if (!draggedEl) return;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+
+    if (!isDragging || !draggedEl) return;
+
     draggedEl.classList.remove("dragging");
+    draggedEl.style.cursor = "grab";
     draggedEl.style.position = "";
     draggedEl.style.left = "";
     draggedEl.style.top = "";
     draggedEl.style.width = "";
     draggedEl.style.zIndex = "";
     draggedEl.style.pointerEvents = "";
+    document.body.style.userSelect = "";
     if (placeholder && placeholder.parentNode) {
       placeholder.parentNode.insertBefore(draggedEl, placeholder);
       placeholder.remove();
@@ -412,10 +449,10 @@ document.addEventListener("DOMContentLoaded", () => {
     placeholder = null;
     saveOrder();
     draggedEl = null;
+    isDragging = false;
     document.removeEventListener("pointermove", onPointerMove);
     document.removeEventListener("pointerup", onPointerUp);
   }
-
   function saveOrder() {
     const ids = [...document.querySelectorAll(".market")].map(el => el.id);
     localStorage.setItem("marketOrder", JSON.stringify(ids));
