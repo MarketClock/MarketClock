@@ -300,7 +300,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (inRange(now, m.pre, m.open)) return ["Opens in", add(m.open)];
       if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
       if (inRange(now, m.close, m.after)) return ["After‑hours ends in", add(m.after)];
-      return ["Opens in", add(m.pre)];
+      // BEFORE pre-market: prefer showing time until regular open for NYSE (avoid pre-market confusion)
+      return m.id === "nyse" ? ["Opens in", add(m.open)] : ["Opens in", add(m.pre)];
     }
     if (m.open1 !== undefined) {
       if (inRange(now, m.open1, m.close1)) return ["Closes in", add(m.close1)];
