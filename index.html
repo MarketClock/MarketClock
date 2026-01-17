@@ -12,10 +12,28 @@
 body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align:center; }
 #pageTitle{ font-size:28px; font-weight:600; margin-bottom:20px; opacity:0.9; }
 #timezone{ margin-bottom:30px; font-size:16px; opacity:0.8; }
-#themeToggle, #tzToggle{ position:fixed; top:20px; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
-#themeToggle{ right:20px; } #tzToggle{ right:140px; }
-:root.dark #themeToggle, :root.dark #tzToggle{ background:#444; color:#fff; }
-:root.light #themeToggle, :root.light #tzToggle{ background:#ddd; color:#000; }
+#themeToggle{ position:fixed; top:20px; right:20px; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+:root.dark #themeToggle{ background:#444; color:#fff; }
+:root.light #themeToggle{ background:#ddd; color:#000; }
+#controlButtons{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:15px; }
+#controlButtons button{ padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+:root.dark #controlButtons button{ background:#444; color:#fff; }
+:root.light #controlButtons button{ background:#ddd; color:#000; }
+#alertModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+#alertModalContent { background: #fff; padding: 30px; border-radius: 12px; max-width: 600px; max-height: 80vh; overflow-y: auto; width: 90%; }
+:root.dark #alertModalContent { background: #222; color: #fff; }
+#alertModalContent h2 { margin-top: 0; }
+.alert-market { margin-bottom: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.05); }
+:root.dark .alert-market { background: rgba(255,255,255,0.05); }
+.alert-market h3 { margin: 0 0 10px 0; font-size: 16px; }
+.alert-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.alert-controls label { min-width: 120px; }
+.alert-controls input[type="number"] { width: 60px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; }
+.alert-controls select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; }
+:root.dark .alert-controls input, :root.dark .alert-controls select { background: #333; color: #fff; border-color: #555; }
+.alert-controls input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+#closeAlertModal { margin-top: 20px; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; background: #444; color: #fff; }
+:root.light #closeAlertModal { background: #ddd; color: #000; }
 #top{margin-bottom:40px} #clock{font-size:72px;font-weight:bold} #date{font-size:16px;opacity:.8}
 #markets{ max-width:1000px; margin:0 auto; text-align:left; }
 .market-grid{ display:grid; grid-template-columns:1fr; gap:24px; }
@@ -64,7 +82,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     margin: 0 auto;
   }
   /* move top buttons into flow so they don't overlap content */
-  #themeToggle, #tzToggle {
+  #themeToggle {
     position: static;
     display: inline-block;
     margin: 6px 8px;
@@ -135,7 +153,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
   /* avoid fixed overlapping on very small screens */
   @media (max-width: 420px) {
-    #themeToggle, #tzToggle { font-size: 13px; padding: 6px 10px; }
+    #themeToggle, #controlButtons button { font-size: 13px; padding: 6px 10px; }
     #clock { font-size: 28px; }
     body { padding: 10px; }
   }
@@ -144,7 +162,6 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 </head>
 <body>
 <button id="themeToggle">Dark</button>
-<button id="tzToggle">Show Market Local Times</button>
 
 <div id="pageTitle">Market Clock – Live Global Market Open/Close Times</div>
 <div id="timezone"></div>
@@ -152,6 +169,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 <div id="top">
   <div id="clock"></div>
   <div id="date"></div>
+  <div id="controlButtons">
+    <button id="tzToggle">Show Market Local Times</button>
+    <button id="filterToggle">Show Open First</button>
+    <button id="alertToggle">Alert Settings</button>
+  </div>
 </div>
 
 <!-- LOGO -->
@@ -167,6 +189,15 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 <ul id="openingSoonList"></ul>
   <h3>Closing Soon</h3>
   <ul id="closingSoonList"></ul>
+</div>
+
+<!-- ALERT SETTINGS MODAL -->
+<div id="alertModal" style="display:none;">
+  <div id="alertModalContent">
+    <h2>Alert Settings</h2>
+    <div id="alertSettingsContainer"></div>
+    <button id="closeAlertModal">Close</button>
+  </div>
 </div>
 
 <!-- Markets container -->
@@ -262,6 +293,205 @@ document.addEventListener("DOMContentLoaded", () => {
     tzToggle.textContent = showLocalMarketTime ? "Show Your Timezone" : "Show Market Local Times";
     updateMarkets();
   });
+
+  /* FILTER TOGGLE */
+  let filterMode = "none"; // "none", "open", "closed"
+  const filterToggle = document.getElementById("filterToggle");
+  filterToggle.addEventListener("click", () => {
+    if (filterMode === "none") {
+      filterMode = "open";
+      filterToggle.textContent = "Show Closed First";
+    } else if (filterMode === "open") {
+      filterMode = "closed";
+      filterToggle.textContent = "Show All";
+    } else {
+      filterMode = "none";
+      filterToggle.textContent = "Show Open First";
+    }
+    sortMarketsByStatus();
+  });
+
+  function sortMarketsByStatus() {
+    if (filterMode === "none") return;
+    const container = document.getElementById("markets");
+    const marketEls = [...container.querySelectorAll(".market")];
+    marketEls.sort((a, b) => {
+      const aOpen = a.classList.contains("open");
+      const bOpen = b.classList.contains("open");
+      if (filterMode === "open") {
+        return bOpen - aOpen; // open first
+      } else {
+        return aOpen - bOpen; // closed first
+      }
+    });
+    marketEls.forEach(el => container.appendChild(el));
+  }
+
+  /* ALERT SYSTEM */
+  let alertSettings = {};
+  let triggeredAlerts = new Set();
+
+  function loadAlertSettings() {
+    try {
+      const saved = localStorage.getItem("alertSettings");
+      if (saved) {
+        alertSettings = JSON.parse(saved);
+      } else {
+        // Initialize default settings
+        markets.forEach(m => {
+          alertSettings[m.id] = {
+            openEnabled: false,
+            openValue: 5,
+            openUnit: 'minutes',
+            closeEnabled: false,
+            closeValue: 5,
+            closeUnit: 'minutes'
+          };
+        });
+      }
+    } catch (e) {
+      alertSettings = {};
+    }
+  }
+
+  function saveAlertSettings() {
+    localStorage.setItem("alertSettings", JSON.stringify(alertSettings));
+  }
+
+  function requestNotificationPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }
+
+  function showNotification(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, { body, icon: "Market.png" });
+    } else {
+      alert(title + "\n" + body);
+    }
+  }
+
+  function buildAlertSettings() {
+    const container = document.getElementById("alertSettingsContainer");
+    container.innerHTML = "";
+    
+    markets.forEach(m => {
+      const settings = alertSettings[m.id] || {
+        openEnabled: false,
+        openValue: 5,
+        openUnit: 'minutes',
+        closeEnabled: false,
+        closeValue: 5,
+        closeUnit: 'minutes'
+      };
+
+      const div = document.createElement("div");
+      div.className = "alert-market";
+      div.innerHTML = `
+        <h3>${m.name}</h3>
+        <div class="alert-controls">
+          <input type="checkbox" id="${m.id}-open-enabled" ${settings.openEnabled ? 'checked' : ''}>
+          <label for="${m.id}-open-enabled">Alert before open:</label>
+          <input type="number" id="${m.id}-open-value" value="${settings.openValue}" min="1" max="1440">
+          <select id="${m.id}-open-unit">
+            <option value="minutes" ${settings.openUnit === 'minutes' ? 'selected' : ''}>Minutes</option>
+            <option value="hours" ${settings.openUnit === 'hours' ? 'selected' : ''}>Hours</option>
+          </select>
+        </div>
+        <div class="alert-controls">
+          <input type="checkbox" id="${m.id}-close-enabled" ${settings.closeEnabled ? 'checked' : ''}>
+          <label for="${m.id}-close-enabled">Alert before close:</label>
+          <input type="number" id="${m.id}-close-value" value="${settings.closeValue}" min="1" max="1440">
+          <select id="${m.id}-close-unit">
+            <option value="minutes" ${settings.closeUnit === 'minutes' ? 'selected' : ''}>Minutes</option>
+            <option value="hours" ${settings.closeUnit === 'hours' ? 'selected' : ''}>Hours</option>
+          </select>
+        </div>
+      `;
+      container.appendChild(div);
+
+      // Add event listeners
+      const openEnabled = div.querySelector(`#${m.id}-open-enabled`);
+      const openValue = div.querySelector(`#${m.id}-open-value`);
+      const openUnit = div.querySelector(`#${m.id}-open-unit`);
+      const closeEnabled = div.querySelector(`#${m.id}-close-enabled`);
+      const closeValue = div.querySelector(`#${m.id}-close-value`);
+      const closeUnit = div.querySelector(`#${m.id}-close-unit`);
+
+      [openEnabled, openValue, openUnit, closeEnabled, closeValue, closeUnit].forEach(el => {
+        el.addEventListener('change', () => {
+          alertSettings[m.id] = {
+            openEnabled: openEnabled.checked,
+            openValue: parseInt(openValue.value),
+            openUnit: openUnit.value,
+            closeEnabled: closeEnabled.checked,
+            closeValue: parseInt(closeValue.value),
+            closeUnit: closeUnit.value
+          };
+          saveAlertSettings();
+        });
+      });
+    });
+  }
+
+  const alertToggle = document.getElementById("alertToggle");
+  const alertModal = document.getElementById("alertModal");
+  const closeAlertModal = document.getElementById("closeAlertModal");
+
+  alertToggle.addEventListener("click", () => {
+    requestNotificationPermission();
+    buildAlertSettings();
+    alertModal.style.display = "flex";
+  });
+
+  closeAlertModal.addEventListener("click", () => {
+    alertModal.style.display = "none";
+  });
+
+  alertModal.addEventListener("click", (e) => {
+    if (e.target === alertModal) {
+      alertModal.style.display = "none";
+    }
+  });
+
+  function checkAlerts(m, label, secs) {
+    const settings = alertSettings[m.id];
+    if (!settings) return;
+
+    const day = new Date().getUTCDay();
+    const isWeekend = (day === 0 || day === 6);
+    if (isWeekend) return; // Don't trigger alerts on weekends
+
+    // Check open alerts
+    if (settings.openEnabled && label === "Opens in") {
+      const targetSecs = settings.openUnit === 'hours' ? settings.openValue * 3600 : settings.openValue * 60;
+      const alertKey = `${m.id}-open-${targetSecs}`;
+      
+      if (secs <= targetSecs && secs > targetSecs - 60 && !triggeredAlerts.has(alertKey)) {
+        triggeredAlerts.add(alertKey);
+        const timeStr = settings.openUnit === 'hours' ? `${settings.openValue} hour${settings.openValue > 1 ? 's' : ''}` : `${settings.openValue} minute${settings.openValue > 1 ? 's' : ''}`;
+        showNotification(`${m.name} Opening Soon`, `Market opens in ${timeStr}`);
+        // Clear this alert after 2 minutes to allow re-triggering if needed
+        setTimeout(() => triggeredAlerts.delete(alertKey), 120000);
+      }
+    }
+
+    // Check close alerts
+    if (settings.closeEnabled && label === "Closes in") {
+      const targetSecs = settings.closeUnit === 'hours' ? settings.closeValue * 3600 : settings.closeValue * 60;
+      const alertKey = `${m.id}-close-${targetSecs}`;
+      
+      if (secs <= targetSecs && secs > targetSecs - 60 && !triggeredAlerts.has(alertKey)) {
+        triggeredAlerts.add(alertKey);
+        const timeStr = settings.closeUnit === 'hours' ? `${settings.closeValue} hour${settings.closeValue > 1 ? 's' : ''}` : `${settings.closeValue} minute${settings.closeValue > 1 ? 's' : ''}`;
+        showNotification(`${m.name} Closing Soon`, `Market closes in ${timeStr}`);
+        setTimeout(() => triggeredAlerts.delete(alertKey), 120000);
+      }
+    }
+  }
+
+  loadAlertSettings();
 
   /* STAGE LOGIC */
   function getStage(now, m) {
@@ -598,6 +828,9 @@ openingSoonList.innerHTML = "";
       countdownLabelEl.textContent = label;
       countdownEl.textContent = format(secs);
 
+      // Check alerts
+      checkAlerts(m, label, secs);
+
       if (showLocalMarketTime && m.tz) {
         if (m.open1 !== undefined) {
           stageEl.textContent = `Stage: ${stage} (Local: ${m.localOpen1}–${m.localClose1}, ${m.localOpen2}–${m.localClose2})`;
@@ -618,6 +851,7 @@ openingSoonList.innerHTML = "";
         openList.appendChild(li);
       }
     });
+    sortMarketsByStatus();
   }
 
   function updateTop(){
