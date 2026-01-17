@@ -165,6 +165,8 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   <ul id="openMarketsList"></ul>
   <h3>Opening Soon</h3>
 <ul id="openingSoonList"></ul>
+  <h3>Closing Soon</h3>
+  <ul id="closingSoonList"></ul>
 </div>
 
 <!-- Markets container -->
@@ -544,6 +546,8 @@ document.addEventListener("DOMContentLoaded", () => {
     openList.innerHTML = "";
     const openingSoonList = document.getElementById("openingSoonList");
 openingSoonList.innerHTML = "";
+    const closingSoonList = document.getElementById("closingSoonList");
+    closingSoonList.innerHTML = "";
     markets.forEach(m => {
       const el = document.getElementById(`market-${m.id}`);
       const statusEl = el.querySelector(".market-status");
@@ -572,6 +576,11 @@ openingSoonList.innerHTML = "";
         const soonLi = document.createElement("li");
         soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         openingSoonList.appendChild(soonLi);
+      }
+      if (label === "Closes in" && secs > 0 && secs <= 3600 && !isWeekend) {
+        const closingLi = document.createElement("li");
+        closingLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
+        closingSoonList.appendChild(closingLi);
       }
       let isOpen = false;
       if (!isWeekend) {
