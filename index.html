@@ -37,6 +37,8 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 :root.dark #shareBtn{ background:#444; color:#fff; } :root.light #shareBtn{ background:#ddd; color:#000; }
 #reorderControls { margin-top: 10px; } #resetOrderBtn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
 :root.dark #resetOrderBtn { background: #444; color: #fff; } :root.light #resetOrderBtn { background: #ddd; color: #000; }
+#logoContainer { position: fixed; left: 20px; top: 20px; z-index: 100; }
+#logo { max-width: 300px; height: auto; display: block; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
 :root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
 #openMarketsList, #openingSoonList { list-style: none; padding-left: 0; margin: 0; }
@@ -50,6 +52,16 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   body {
     padding: 12px;
     text-align: left;
+  }
+  /* Logo adjustments for mobile */
+  #logoContainer {
+    position: static;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  #logo {
+    max-width: 240px;
+    margin: 0 auto;
   }
   /* move top buttons into flow so they don't overlap content */
   #themeToggle, #tzToggle {
@@ -140,6 +152,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 <div id="top">
   <div id="clock"></div>
   <div id="date"></div>
+</div>
+
+<!-- LOGO -->
+<div id="logoContainer">
+  <img src="Market.png" alt="Logo" id="logo">
 </div>
 
 <!-- LEFT SIDEBAR -->
@@ -522,6 +539,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateMarkets(){
     const now = utcSec();
     const day = new Date().getUTCDay();
+    const isWeekend = (day === 0 || day === 6);
     const openList = document.getElementById("openMarketsList");
     openList.innerHTML = "";
     const openingSoonList = document.getElementById("openingSoonList");
@@ -533,15 +551,30 @@ openingSoonList.innerHTML = "";
       const countdownLabelEl = el.querySelector(".market-countdown-label");
       const stageEl = el.querySelector(".market-stage");
       const nowLine = el.querySelector(".now");
-      const stage = getStage(now, m);
-      const [label, secs] = nextEvent(now, m);
-      if (label === "Opens in" && secs > 0 && secs <= 3600) {
+      
+      let stage, label, secs;
+      
+      if (isWeekend) {
+        // On weekends, show as closed and calculate time until Monday opening
+        stage = "Closed (Weekend)";
+        const daysUntilMonday = day === 0 ? 1 : 2; // Sunday=1 day, Saturday=2 days
+        const openTime = m.open1 !== undefined ? m.open1 : m.open;
+        // Calculate: (days until Monday * seconds per day) - current time + opening time
+        const secsToOpen = (daysUntilMonday * 86400) - now + openTime;
+        label = "Opens in";
+        secs = secsToOpen;
+      } else {
+        stage = getStage(now, m);
+        [label, secs] = nextEvent(now, m);
+      }
+      
+      if (label === "Opens in" && secs > 0 && secs <= 3600 && !isWeekend) {
         const soonLi = document.createElement("li");
         soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         openingSoonList.appendChild(soonLi);
       }
       let isOpen = false;
-      if (day !== 0 && day !== 6) {
+      if (!isWeekend) {
         if (m.pre !== undefined) {
           isOpen = inRange(now, m.open, m.close);
         } else if (m.open1 !== undefined) {
