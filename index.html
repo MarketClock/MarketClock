@@ -64,6 +64,9 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 :root.dark #shareBtn{ background:#444; color:#fff; } :root.light #shareBtn{ background:#ddd; color:#000; }
 #reorderControls { margin-top: 10px; } #resetOrderBtn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
 :root.dark #resetOrderBtn { background: #444; color: #fff; } :root.light #resetOrderBtn { background: #ddd; color: #000; }
+#feedbackButtons { margin-top: 20px; text-align: center; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+#feedbackButtons button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+:root.dark #feedbackButtons button { background: #444; color: #fff; } :root.light #feedbackButtons button { background: #ddd; color: #000; }
 #seoContent { margin-top: 60px; padding: 20px; font-size: 14px; opacity: 0.7; line-height: 1.6; text-align: center; max-width: 900px; margin-left: auto; margin-right: auto; }
 #logoContainer { position: fixed; left: 20px; top: 20px; z-index: 100; }
 #logo { max-width: 300px; height: auto; display: block; }
@@ -232,6 +235,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   <button id="resetOrderBtn">Reset Order</button>
 </div>
 
+<div id="feedbackButtons">
+  <button id="reportHoursBtn">Report Incorrect Market Hours</button>
+  <button id="feedbackBtn">Send Feedback</button>
+</div>
+
 <div id="seoContent">
   <p>MarketClock provides live global market hours and real‑time opening and closing times for major stock exchanges worldwide, including New York (NYSE & NASDAQ), London Stock Exchange (LSE), Frankfurt Xetra, Euronext Paris, Tokyo Stock Exchange (TSE), Hong Kong Stock Exchange (HKEX), Shanghai Stock Exchange (SSE), Singapore Exchange (SGX), India's National Stock Exchange (NSE), Sydney's ASX, Toronto Stock Exchange (TSX), and Brazil's B3. Track worldwide trading sessions, market status updates, countdowns to the next open or close, and key international market overlaps in one simple, fast, and accurate global market clock. Designed for traders, investors, and anyone following international stock market times.</p>
 </div>
@@ -285,6 +293,57 @@ document.addEventListener("DOMContentLoaded", () => {
     const m = Math.floor((sec%3600)/60);
     const s = sec%60;
     return {h,m,s};
+  }
+
+  /* HOLIDAYS - Market closures for US and international exchanges */
+  function isMarketHoliday(date, marketId) {
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const dayOfWeek = date.getUTCDay();
+    
+    // Helper to calculate nth weekday of month (e.g., 3rd Monday)
+    function getNthWeekday(y, m, weekday, n) {
+      let d = new Date(Date.UTC(y, m - 1, 1));
+      let count = 0;
+      while (count < n) {
+        if (d.getUTCDay() === weekday) count++;
+        if (count < n) d.setUTCDate(d.getUTCDate() + 1);
+      }
+      return d.getUTCDate();
+    }
+    
+    // US market holidays (NYSE, NASDAQ)
+    if (marketId === "nyse") {
+      // New Year's Day
+      if (month === 1 && day === 1) return true;
+      // MLK Day (3rd Monday of January)
+      if (month === 1 && day === getNthWeekday(year, 1, 1, 3)) return true;
+      // Presidents Day (3rd Monday of February)
+      if (month === 2 && day === getNthWeekday(year, 2, 1, 3)) return true;
+      // Good Friday (2 days before Easter)
+      // Easter 2026: April 5, so Good Friday is April 3
+      if (year === 2026 && month === 4 && day === 3) return true;
+      // Memorial Day (last Monday of May)
+      let lastMonday = getNthWeekday(year, 5, 1, 4);
+      if (month === 5 && day === lastMonday) {
+        let d = new Date(Date.UTC(year, 4, lastMonday + 7));
+        if (d.getUTCMonth() === 4) return true; // Still in May
+        return day === lastMonday;
+      }
+      // Juneteenth
+      if (month === 6 && day === 19) return true;
+      // Independence Day
+      if (month === 7 && day === 4) return true;
+      // Labor Day (1st Monday of September)
+      if (month === 9 && day === getNthWeekday(year, 9, 1, 1)) return true;
+      // Thanksgiving (4th Thursday of November)
+      if (month === 11 && day === getNthWeekday(year, 11, 4, 4)) return true;
+      // Christmas
+      if (month === 12 && day === 25) return true;
+    }
+    
+    return false;
   }
 
   /* MARKETS */
@@ -810,10 +869,24 @@ document.addEventListener("DOMContentLoaded", () => {
     updateMarkets();
   });
 
+  /* FEEDBACK BUTTONS */
+  document.getElementById("reportHoursBtn").addEventListener("click", () => {
+    const subject = "Market Clock - Report Incorrect Market Hours";
+    const body = "Please describe which market has incorrect hours and what the correct hours should be:\n\n";
+    window.location.href = `mailto:feedback@marketclock.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+
+  document.getElementById("feedbackBtn").addEventListener("click", () => {
+    const subject = "Market Clock - Feedback";
+    const body = "Please share your feedback:\n\n";
+    window.location.href = `mailto:feedback@marketclock.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+
   /* UPDATE LOOP */
   function updateMarkets(){
     const now = utcSec();
-    const day = new Date().getUTCDay();
+    const today = new Date();
+    const day = today.getUTCDay();
     const isWeekend = (day === 0 || day === 6);
     const openList = document.getElementById("openMarketsList");
     openList.innerHTML = "";
@@ -831,13 +904,23 @@ openingSoonList.innerHTML = "";
       
       let stage, label, secs;
       
-      if (isWeekend) {
-        // On weekends, show as closed and calculate time until Monday opening
-        stage = "Closed (Weekend)";
-        const daysUntilMonday = day === 0 ? 1 : 2; // Sunday=1 day, Saturday=2 days
+      const isHoliday = isMarketHoliday(today, m.id);
+      
+      if (isWeekend || isHoliday) {
+        // On weekends or holidays, show as closed and calculate time until next trading day
+        stage = isHoliday ? "Closed (Holiday)" : "Closed (Weekend)";
+        let nextTradingDay = new Date(today);
+        nextTradingDay.setUTCDate(nextTradingDay.getUTCDate() + 1);
+        
+        // Skip to next trading day (skip weekends and holidays)
+        while (nextTradingDay.getUTCDay() === 0 || nextTradingDay.getUTCDay() === 6 || isMarketHoliday(nextTradingDay, m.id)) {
+          nextTradingDay.setUTCDate(nextTradingDay.getUTCDate() + 1);
+        }
+        
         const openTime = m.open1 !== undefined ? m.open1 : m.open;
-        // Calculate: (days until Monday * seconds per day) - current time + opening time
-        const secsToOpen = (daysUntilMonday * 86400) - now + openTime;
+        const nextTradingDayStart = nextTradingDay.getUTCHours() * 3600 + nextTradingDay.getUTCMinutes() * 60 + nextTradingDay.getUTCSeconds();
+        const daysUntilNextTrading = Math.ceil((nextTradingDay.getTime() - today.getTime()) / (1000 * 86400));
+        const secsToOpen = (daysUntilNextTrading * 86400) - now + openTime;
         label = "Opens in";
         secs = secsToOpen;
       } else {
@@ -845,18 +928,18 @@ openingSoonList.innerHTML = "";
         [label, secs] = nextEvent(now, m);
       }
       
-      if (label === "Opens in" && secs > 0 && secs <= 3600 && !isWeekend) {
+      if (label === "Opens in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
         const soonLi = document.createElement("li");
         soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         openingSoonList.appendChild(soonLi);
       }
-      if (label === "Closes in" && secs > 0 && secs <= 3600 && !isWeekend) {
+      if (label === "Closes in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
         const closingLi = document.createElement("li");
         closingLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         closingSoonList.appendChild(closingLi);
       }
       let isOpen = false;
-      if (!isWeekend) {
+      if (!isWeekend && !isHoliday) {
         if (m.pre !== undefined) {
           isOpen = inRange(now, m.open, m.close);
         } else if (m.open1 !== undefined) {
