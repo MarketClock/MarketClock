@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JDYFTFF29L"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JDYFTFF29L');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Market Clock</title>
@@ -72,8 +81,8 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 #logo { max-width: 300px; height: auto; display: block; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
 :root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
-#openMarketsList, #openingSoonList { list-style: none; padding-left: 0; margin: 0; }
-#openMarketsList li, #openingSoonList li { margin-bottom: 6px; }
+#openMarketsList, #openingSoonList, #closingSoonList { list-style: none; padding-left: 0; margin: 0; }
+#openMarketsList li, #openingSoonList li, #closingSoonList li { margin-bottom: 6px; }
 .market.dragging { opacity: 0.6; transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 10; }
 .market.placeholder { border: 2px dashed #888; background: transparent !important; height: 80px; }
 .open-dot { margin-left:6px; font-size:0.95em; vertical-align:middle; }
@@ -195,7 +204,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <!-- LOGO -->
 <div id="logoContainer">
-  <img src="Market4.png" alt="Logo" id="logo">
+  <img src="market4.png" alt="Logo" id="logo">
 </div>
 
 <!-- LEFT SIDEBAR -->
@@ -227,12 +236,12 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   <div class="legend-item"><div class="legend-box" style="background:#0d1b3d"></div>Overnight</div>
 </div>
 
-<div id="shareContainer">
-  <button id="shareBtn">Share</button>
-</div>
-
 <div id="reorderControls">
   <button id="resetOrderBtn">Reset Order</button>
+</div>
+
+<div id="shareContainer">
+  <button id="shareBtn">Share</button>
 </div>
 
 <div id="feedbackButtons">
@@ -350,16 +359,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const markets = [
   { id:"nyse", name:"New York (NYSE & NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600, localOpen: "09:30", localClose: "16:00" },
   { id:"lse", name:"London (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600, localOpen: "08:00", localClose: "16:30" },
-  { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 17.5*3600, localOpen: "09:00", localClose: "17:30" },
-  { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 8*3600, close: 17.5*3600, localOpen: "09:00", localClose: "17:30" },
-  { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 0*3600, close1: 11.5*3600, open2: 12.5*3600, close2: 15*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00" },
+  { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30" },
+  { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30" },
+  { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 0*3600, close1: 2.5*3600, open2: 3.5*3600, close2: 6*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00" },
   { id:"hkex", name:"Hong Kong (HKEX)", tz:"Asia/Hong_Kong", open1: 1*3600, close1: 4*3600, open2: 5*3600, close2: 8*3600, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00" },
   { id:"sse", name:"Shanghai (SSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00" },
   { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open: 1*3600, close: 9*3600, localOpen: "09:00", localClose: "17:00" },
-  { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 3.5*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30" },
+  { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 3.75*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30" },
   { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23.983*3600, close: 5*3600, localOpen: "09:59", localClose: "16:00" },
   { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00" },
-  { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 12*3600, close: 17.917*3600, localOpen: "10:00", localClose: "17:55" }
+  { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 13*3600, close: 20.917*3600, localOpen: "10:00", localClose: "17:55" }
 ];
 
   /* TIMEZONE TOGGLE */
