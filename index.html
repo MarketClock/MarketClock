@@ -195,7 +195,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <!-- LOGO -->
 <div id="logoContainer">
-  <img src="Market.png" alt="Logo" id="logo">
+  <img src="market4.png" alt="Logo" id="logo">
 </div>
 
 <!-- LEFT SIDEBAR -->
@@ -452,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showNotification(title, body) {
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(title, { body, icon: "Market.png" });
+      new Notification(title, { body, icon: "market4.png" });
     } else {
       alert(title + "\n" + body);
     }
