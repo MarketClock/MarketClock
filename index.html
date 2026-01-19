@@ -687,6 +687,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastX = 0;
   let lastY = 0;
   let moveListenerAdded = false;
+  let activePointerId = null;
+  let prevOverflow = "";
 
   function enableDragAndDrop() {
     document.querySelectorAll(".market").forEach(card => {
@@ -701,6 +703,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = e.currentTarget;
     lastX = e.clientX;
     lastY = e.clientY;
+    activePointerId = e.pointerId;
     const isTouch = e.pointerType === "touch";
     const holdDelay = isTouch ? 450 : 0;
 
@@ -728,6 +731,9 @@ document.addEventListener("DOMContentLoaded", () => {
     isDragging = true;
     draggedEl.classList.add("dragging");
     draggedEl.style.cursor = "grabbing";
+    if (activePointerId !== null && draggedEl.setPointerCapture) {
+      draggedEl.setPointerCapture(activePointerId);
+    }
 
     const rect = draggedEl.getBoundingClientRect();
     offsetX = lastX - rect.left;
@@ -743,6 +749,8 @@ document.addEventListener("DOMContentLoaded", () => {
     draggedEl.style.width = rect.width + "px";
     draggedEl.style.pointerEvents = "none";
     document.body.style.userSelect = "none";
+    prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     moveDragged(lastX, lastY);
   }
@@ -754,6 +762,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function onPointerMove(e) {
+    if (activePointerId !== null && e.pointerId !== activePointerId) return;
     if (holdTimer !== null) {
       // Still waiting for hold to trigger—check if user moved too far
       const dx = e.clientX - lastX;
@@ -819,6 +828,11 @@ document.addEventListener("DOMContentLoaded", () => {
     draggedEl.style.zIndex = "";
     draggedEl.style.pointerEvents = "";
     document.body.style.userSelect = "";
+    document.body.style.overflow = prevOverflow;
+    prevOverflow = "";
+    if (draggedEl && activePointerId !== null && draggedEl.releasePointerCapture) {
+      try { draggedEl.releasePointerCapture(activePointerId); } catch(e) {}
+    }
 
     if (placeholder && placeholder.parentNode) {
       placeholder.parentNode.insertBefore(draggedEl, placeholder);
@@ -830,6 +844,7 @@ document.addEventListener("DOMContentLoaded", () => {
     draggedEl = null;
     isDragging = false;
     moveListenerAdded = false;
+    activePointerId = null;
     document.removeEventListener("pointermove", onPointerMove);
     document.removeEventListener("pointerup", onPointerUp);
     document.removeEventListener("pointercancel", onPointerUp);
