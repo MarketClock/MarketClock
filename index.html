@@ -86,6 +86,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 .market.dragging { opacity: 0.6; transform: scale(1.03); box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 10; }
 .market.placeholder { border: 2px dashed #888; background: transparent !important; height: 80px; }
 .open-dot { margin-left:6px; font-size:0.95em; vertical-align:middle; }
+.reorder-arrows { display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 4px; }
+.reorder-arrows button { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 0; }
+:root.dark .reorder-arrows button { background: #333; color: #fff; }
+:root.light .reorder-arrows button { background: #ccc; color: #000; }
+.reorder-arrows button:active { opacity: 0.7; }
 
 /* MOBILE / SMALL SCREEN OPTIMIZATIONS */
 @media (max-width: 900px) {
@@ -156,8 +161,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   .market {
     font-size: 16px;
     padding: 12px;
+    padding-right: 80px;
     border-radius: 8px;
+    cursor: default;
   }
+  .reorder-arrows { display: flex; }
   .timeline { height: 28px; }
 
   /* reduce clock size */
@@ -204,7 +212,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <!-- LOGO -->
 <div id="logoContainer">
-  <img src="./Market4.png" alt="Logo" id="logo">
+  <img src="./market4.png" alt="Logo" id="logo">
 </div>
 
 <!-- LEFT SIDEBAR -->
@@ -673,6 +681,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ${drawTimeline(m)}
         <div class="now"></div>
       </div>
+      <div class="reorder-arrows">
+        <button class="arrow-up" data-id="${m.id}" title="Move up">▲</button>
+        <button class="arrow-down" data-id="${m.id}" title="Move down">▼</button>
+      </div>
     `;
     marketsContainer.appendChild(wrapper);
   });
@@ -691,10 +703,36 @@ document.addEventListener("DOMContentLoaded", () => {
   let prevOverflow = "";
 
   function enableDragAndDrop() {
+    const isDesktop = window.matchMedia("(min-width: 901px)").matches;
+    if (!isDesktop) return; // Skip drag-and-drop on mobile
+    
     document.querySelectorAll(".market").forEach(card => {
       card.style.touchAction = "pan-y";
       card.style.cursor = "grab";
       card.addEventListener("pointerdown", onPointerDown);
+    });
+  }
+
+  /* ARROW-BASED REORDERING FOR MOBILE */
+  function enableArrowReordering() {
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("arrow-up")) {
+        const marketId = e.target.dataset.id;
+        const market = document.getElementById(`market-${marketId}`);
+        const prev = market.previousElementSibling;
+        if (prev) {
+          market.parentNode.insertBefore(market, prev);
+          saveOrder();
+        }
+      } else if (e.target.classList.contains("arrow-down")) {
+        const marketId = e.target.dataset.id;
+        const market = document.getElementById(`market-${marketId}`);
+        const next = market.nextElementSibling;
+        if (next) {
+          market.parentNode.insertBefore(next, market);
+          saveOrder();
+        }
+      }
     });
   }
 
@@ -886,6 +924,10 @@ document.addEventListener("DOMContentLoaded", () => {
           ${drawTimeline(m)}
           <div class="now"></div>
         </div>
+        <div class="reorder-arrows">
+          <button class="arrow-up" data-id="${m.id}" title="Move up">▲</button>
+          <button class="arrow-down" data-id="${m.id}" title="Move down">▼</button>
+        </div>
       `;
       container.appendChild(wrapper);
     });
@@ -1023,6 +1065,7 @@ openingSoonList.innerHTML = "";
 
   loadOrder();
   enableDragAndDrop();
+  enableArrowReordering();
   updateTop();
   updateMarkets();
   setInterval(()=>{ updateTop(); updateMarkets(); },1000);
