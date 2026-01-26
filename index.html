@@ -23,6 +23,8 @@
 body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align:center; }
 #pageTitle{ font-size:28px; font-weight:600; margin-bottom:20px; opacity:0.9; }
 #timezone{ margin-bottom:30px; font-size:16px; opacity:0.8; }
+#searchBar{ max-width:320px; width:100%; padding:10px 14px; border-radius:8px; border:1px solid #ccc; font-size:15px; margin:0 auto 16px auto; display:block; box-shadow:0 1px 4px rgba(0,0,0,0.12); }
+#searchBar:focus{ outline:2px solid #4caf50; border-color:#4caf50; }
 #themeToggle{ position:fixed; top:20px; right:20px; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
 :root.dark #themeToggle{ background:#444; color:#fff; }
 :root.light #themeToggle{ background:#ddd; color:#000; }
@@ -49,10 +51,10 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 #closeAlertModal { margin-top: 20px; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; background: #444; color: #fff; }
 :root.light #closeAlertModal { background: #ddd; color: #000; }
 #top{margin-bottom:40px} #clock{font-size:72px;font-weight:bold} #date{font-size:16px;opacity:.8}
-#markets{ max-width:1000px; margin:0 auto; text-align:left; }
+#categories{ max-width:1100px; margin:0 auto; text-align:left; }
 .market-grid{ display:grid; grid-template-columns:1fr; gap:24px; }
 @media (min-width:900px){ .market-grid{ grid-template-columns:1fr 1fr; column-gap:28px; row-gap:24px; } }
-.market { font-size:18px; padding:16px 18px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.25); background:rgba(0,0,0,0.1); position:relative; user-select: none; -webkit-user-select: none; transition: background-color 0.2s ease, box-shadow 0.2s ease; }
+.market { font-size:18px; padding:16px 18px; padding-right:50px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.25); background:rgba(0,0,0,0.1); position:relative; user-select: none; -webkit-user-select: none; transition: background-color 0.2s ease, box-shadow 0.2s ease; }
 .market.dragging { user-select: none; }:root.dark .market{ background:#1a1a1a; box-shadow:0 2px 10px rgba(0,0,0,0.6); }
 :root.dark .open{color:#4caf50} :root.dark .closed{color:#e53935}
 :root.light .open{color:#2e7d32} :root.light .closed{color:#c62828}
@@ -77,6 +79,22 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 #feedbackButtons button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
 :root.dark #feedbackButtons button { background: #444; color: #fff; } :root.light #feedbackButtons button { background: #ddd; color: #000; }
 #seoContent { margin-top: 60px; padding: 20px; font-size: 14px; opacity: 0.7; line-height: 1.6; text-align: center; max-width: 900px; margin-left: auto; margin-right: auto; }
+#categories { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.category-block { background: rgba(0,0,0,0.06); border-radius: 10px; padding: 14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+:root.dark .category-block { background: #161616; box-shadow:0 2px 10px rgba(0,0,0,0.35); }
+.category-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.category-title { font-size: 18px; font-weight: 600; }
+.category-toggle { border: 1px solid #999; background: #f0f0f0; color: #111; font-size: 14px; cursor: pointer; opacity: 0.95; padding: 6px 12px; border-radius: 6px; }
+:root.dark .category-toggle { border-color: #666; background: #333; color: #fff; }
+.category-toggle:hover { filter: brightness(1.08); }
+.category-toggle:focus-visible { outline: 2px solid #4caf50; outline-offset: 2px; }
+.category-content { margin-top: 10px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px){ .category-content { grid-template-columns: 1fr 1fr; } }
+.category-collapsed .category-content { display: none; }
+.pill-list { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.pill { padding: 6px 10px; border-radius: 999px; background: rgba(0,0,0,0.08); font-size: 13px; }
+:root.dark .pill { background: rgba(255,255,255,0.06); }
+#myMarketsEmpty { font-size: 14px; opacity: 0.7; margin: 6px 0 2px 0; }
 #logoContainer { position: fixed; left: 20px; top: 20px; z-index: 100; }
 #logo { max-width: 300px; height: auto; display: block; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
@@ -91,6 +109,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 :root.dark .reorder-arrows button { background: #333; color: #fff; }
 :root.light .reorder-arrows button { background: #ccc; color: #000; }
 .reorder-arrows button:active { opacity: 0.7; }
+.favorite-btn { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; border: none; background: transparent; cursor: pointer; font-size: 20px; padding: 0; z-index: 5; transition: transform 0.2s ease; pointer-events: auto; }
+.favorite-btn:hover { transform: scale(1.2); }
+.favorite-btn.favorited { color: #ffd700; }
+.favorite-btn:not(.favorited) { color: #888; opacity: 0.6; }
+:root.dark .favorite-btn:not(.favorited) { color: #666; }
 
 /* MOBILE / SMALL SCREEN OPTIMIZATIONS */
 @media (max-width: 900px) {
@@ -164,11 +187,13 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   .market {
     font-size: 16px;
     padding: 12px;
-    padding-right: 80px;
+    padding-right: 90px;
     border-radius: 8px;
     cursor: default;
   }
-  .reorder-arrows { display: flex; }
+  .reorder-arrows { display: flex; right: 12px; }
+  .favorite-btn { right: 52px; top: 50%; transform: translateY(-50%); }
+  .favorite-btn:hover { transform: translateY(-50%) scale(1.2); }
   .timeline { height: 28px; }
 
   /* reduce clock size */
@@ -185,7 +210,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   .market.placeholder { height: 72px; }
 
   /* ensure the markets container has proper padding on small screens */
-  #markets { padding-top: 6px; }
+  #categories { padding-top: 6px; }
 
   /* avoid fixed overlapping on very small screens */
   @media (max-width: 420px) {
@@ -201,6 +226,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <div id="pageTitle">Market Clock – Live Global Market Open/Close Times</div>
 <div id="timezone"></div>
+<input id="searchBar" type="search" placeholder="Search markets, countries, tickers..." aria-label="Search markets">
 
 <div id="top">
   <div id="clock"></div>
@@ -209,6 +235,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   <div id="controlButtons">
     <button id="tzToggle">Show Market Local Times</button>
     <button id="filterToggle">Show Open First</button>
+    <button id="favoriteToggle">Show Favorites Only</button>
     <button id="alertToggle">Alert Settings</button>
   </div>
 </div>
@@ -237,8 +264,8 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   </div>
 </div>
 
-<!-- Markets container -->
-<div id="markets" class="market-grid"></div>
+<!-- Markets container (sections built dynamically) -->
+<div id="categories"></div>
 
 <div id="legend">
   <div class="legend-item"><div class="legend-box" style="background:#9c27b0"></div>Pre‑Market</div>
@@ -314,6 +341,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const s = sec%60;
     return {h,m,s};
   }
+  function parseHHMM(str){ const [h,m] = str.split(":").map(Number); return (h*3600)+(m*60); }
+  function getTzOffsetSeconds(tz){
+    const now = new Date();
+    const tzDate = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+    return (tzDate.getTime() - now.getTime()) / 1000; // positive if TZ ahead of UTC
+  }
+  function applyLocalTimes(m){
+    if (!m.useLocalTime || !m.tz) return m;
+    const offset = getTzOffsetSeconds(m.tz);
+
+    // Helper to shift a local HH:MM to UTC seconds-of-day
+    const toUtcSec = (hhmm) => (parseHHMM(hhmm) - offset + 86400) % 86400;
+
+    if (m.localOpen1 && m.localClose1 && m.localOpen2 && m.localClose2) {
+      m.open1 = toUtcSec(m.localOpen1);
+      m.close1 = toUtcSec(m.localClose1);
+      m.open2 = toUtcSec(m.localOpen2);
+      m.close2 = toUtcSec(m.localClose2);
+    } else if (m.localOpen && m.localClose) {
+      m.open = toUtcSec(m.localOpen);
+      m.close = toUtcSec(m.localClose);
+    }
+    return m;
+  }
 
   /* HOLIDAYS - Market closures for US and international exchanges */
   function isMarketHoliday(date, marketId) {
@@ -368,19 +419,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* MARKETS */
   const markets = [
-  { id:"nyse", name:"New York (NYSE & NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600, localOpen: "09:30", localClose: "16:00" },
-  { id:"lse", name:"London (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600, localOpen: "08:00", localClose: "16:30" },
-  { id:"xetra", name:"Frankfurt (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30" },
-  { id:"paris", name:"Euronext Paris", tz:"Europe/Paris", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30" },
-  { id:"tse", name:"Tokyo (TSE)", tz:"Asia/Tokyo", open1: 0*3600, close1: 2.5*3600, open2: 3.5*3600, close2: 6*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00" },
-  { id:"hkex", name:"Hong Kong (HKEX)", tz:"Asia/Hong_Kong", open1: 1*3600, close1: 4*3600, open2: 5*3600, close2: 8*3600, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00" },
-  { id:"sse", name:"Shanghai (SSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00" },
-  { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open: 1*3600, close: 9*3600, localOpen: "09:00", localClose: "17:00" },
-  { id:"nse", name:"India (NSE)", tz:"Asia/Kolkata", open: 3.75*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30" },
-  { id:"asx", name:"Sydney (ASX)", tz:"Australia/Sydney", open: 23.983*3600, close: 5*3600, localOpen: "09:59", localClose: "16:00" },
-  { id:"tsx", name:"Toronto (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00" },
-  { id:"b3", name:"Brazil (B3)", tz:"America/Sao_Paulo", open: 13*3600, close: 20.917*3600, localOpen: "10:00", localClose: "17:55" }
-];
+    // Core
+    { id:"nyse", name:"US (NYSE + NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600, localOpen: "09:30", localClose: "16:00", category:"core", core:true, abbreviation:"US", country:"United States", city:"New York", tags:["usa","nyc","nasdaq","new york","united states"] },
+    { id:"lse", name:"London Stock Exchange (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600, localOpen: "08:00", localClose: "16:30", category:"core", core:true, abbreviation:"LSE", country:"United Kingdom", city:"London", tags:["uk","england","gb","gbp"] },
+    { id:"tse", name:"Tokyo Stock Exchange (JPX)", tz:"Asia/Tokyo", open1: 0*3600, close1: 2.5*3600, open2: 3.5*3600, close2: 6*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00", category:"core", core:true, abbreviation:"JPX", country:"Japan", city:"Tokyo", tags:["jpx","tse","japan"] },
+    { id:"hkex", name:"Hong Kong Stock Exchange (HKEX)", tz:"Asia/Hong_Kong", open1: 1*3600, close1: 4*3600, open2: 5*3600, close2: 8*3600, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00", category:"core", core:true, abbreviation:"HKEX", country:"China", city:"Hong Kong", tags:["hong kong","china","hsi"] },
+    { id:"sse", name:"Shanghai Stock Exchange (SSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SSE", country:"China", city:"Shanghai", tags:["china","shanghai"] },
+    { id:"szse", name:"Shenzhen Stock Exchange (SZSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SZSE", country:"China", city:"Shenzhen", tags:["china","shenzhen"] },
+
+    // Americas
+    { id:"tsx", name:"Toronto Stock Exchange (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSX", country:"Canada", city:"Toronto", tags:["canada"] },
+    { id:"tsxv", name:"TSX Venture (TSXV)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSXV", country:"Canada", city:"Toronto", tags:["canada","venture"] },
+    { id:"b3", name:"B3 (Brazil)", tz:"America/Sao_Paulo", open: 13*3600, close: 20.917*3600, localOpen: "10:00", localClose: "17:55", category:"americas", abbreviation:"B3", country:"Brazil", city:"Sao Paulo", tags:["brazil","bovespa"] },
+    { id:"bmv", name:"Bolsa Mexicana de Valores (BMV)", tz:"America/Mexico_City", useLocalTime:true, localOpen:"09:00", localClose:"15:00", category:"americas", abbreviation:"BMV", country:"Mexico", city:"Mexico City", tags:["mexico","latam"] },
+
+    // Europe
+    { id:"euronext", name:"Euronext", tz:"Europe/Paris", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"ENX", country:"Eurozone", city:"Paris", tags:["france","amsterdam","brussels","lisbon","oslo","dublin","milan"] },
+    { id:"xetra", name:"Deutsche Börse (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30", category:"europe", abbreviation:"XETRA", country:"Germany", city:"Frankfurt", tags:["germany","deutsche","frankfurt"] },
+    { id:"six", name:"SIX Swiss Exchange", tz:"Europe/Zurich", useLocalTime:true, localOpen:"09:00", localClose:"17:20", category:"europe", abbreviation:"SIX", country:"Switzerland", city:"Zurich", tags:["switzerland","zurich"] },
+    { id:"borsa", name:"Borsa Italiana", tz:"Europe/Rome", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"Borsa", country:"Italy", city:"Milan", tags:["italy","milan"] },
+    { id:"bme", name:"Madrid (BME)", tz:"Europe/Madrid", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"BME", country:"Spain", city:"Madrid", tags:["spain"] },
+    { id:"omx", name:"OMX Nordic", tz:"Europe/Stockholm", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"OMX", country:"Nordics", city:"Stockholm", tags:["sweden","denmark","finland","nordic","helsinki","copenhagen","iceland"] },
+
+    // Asia-Pacific
+    { id:"asx", name:"ASX (Australia)", tz:"Australia/Sydney", open: 23.983*3600, close: 5*3600, localOpen: "09:59", localClose: "16:00", category:"asia-pacific", abbreviation:"ASX", country:"Australia", city:"Sydney", tags:["australia","sydney"] },
+    { id:"nse", name:"NSE (India)", tz:"Asia/Kolkata", open: 3.75*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30", category:"asia-pacific", abbreviation:"NSE", country:"India", city:"Mumbai", tags:["india","national stock exchange"] },
+    { id:"bse", name:"BSE (India)", tz:"Asia/Kolkata", useLocalTime:true, localOpen:"09:15", localClose:"15:30", category:"asia-pacific", abbreviation:"BSE", country:"India", city:"Mumbai", tags:["india","bombay"] },
+    { id:"krx", name:"KRX (Korea)", tz:"Asia/Seoul", useLocalTime:true, localOpen:"09:00", localClose:"15:30", category:"asia-pacific", abbreviation:"KRX", country:"South Korea", city:"Seoul", tags:["korea","kospi"] },
+    { id:"twse", name:"TWSE (Taiwan)", tz:"Asia/Taipei", useLocalTime:true, localOpen:"09:00", localClose:"13:30", category:"asia-pacific", abbreviation:"TWSE", country:"Taiwan", city:"Taipei", tags:["taiwan"] },
+    { id:"sgx", name:"Singapore (SGX)", tz:"Asia/Singapore", open: 1*3600, close: 9*3600, localOpen: "09:00", localClose: "17:00", category:"asia-pacific", abbreviation:"SGX", country:"Singapore", city:"Singapore", tags:["singapore"] },
+    { id:"bursa", name:"Bursa Malaysia", tz:"Asia/Kuala_Lumpur", useLocalTime:true, localOpen1:"09:00", localClose1:"12:30", localOpen2:"14:30", localClose2:"17:00", category:"asia-pacific", abbreviation:"BURSA", country:"Malaysia", city:"Kuala Lumpur", tags:["malaysia","kl"] },
+    { id:"idx", name:"IDX (Indonesia)", tz:"Asia/Jakarta", useLocalTime:true, localOpen1:"09:00", localClose1:"11:30", localOpen2:"13:30", localClose2:"15:00", category:"asia-pacific", abbreviation:"IDX", country:"Indonesia", city:"Jakarta", tags:["indonesia","jakarta"] },
+
+    // Middle East & Africa
+    { id:"tadawul", name:"Tadawul (Saudi Arabia)", tz:"Asia/Riyadh", useLocalTime:true, localOpen:"10:00", localClose:"15:10", category:"mea", abbreviation:"TASI", country:"Saudi Arabia", city:"Riyadh", tags:["saudi"] },
+    { id:"dfm", name:"DFM (Dubai)", tz:"Asia/Dubai", useLocalTime:true, localOpen:"10:00", localClose:"14:45", category:"mea", abbreviation:"DFM", country:"UAE", city:"Dubai", tags:["dubai","uae"] },
+    { id:"adx", name:"ADX (Abu Dhabi)", tz:"Asia/Dubai", useLocalTime:true, localOpen:"10:00", localClose:"14:44", category:"mea", abbreviation:"ADX", country:"UAE", city:"Abu Dhabi", tags:["uae","abu dhabi"] },
+    { id:"qse", name:"QSE (Qatar)", tz:"Asia/Riyadh", useLocalTime:true, localOpen:"09:30", localClose:"13:00", category:"mea", abbreviation:"QSE", country:"Qatar", city:"Doha", tags:["qatar"] },
+    { id:"jse", name:"JSE (South Africa)", tz:"Africa/Johannesburg", useLocalTime:true, localOpen:"09:00", localClose:"17:00", category:"mea", abbreviation:"JSE", country:"South Africa", city:"Johannesburg", tags:["south africa","johannesburg"] },
+
+    // Futures & Commodities
+    { id:"cme", name:"CME Globex", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"CME", country:"United States", city:"Chicago", tags:["futures","oil","nymex","comex","cme","globex"] },
+    { id:"iceus", name:"ICE Futures U.S.", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"ICE US", country:"United States", city:"New York", tags:["ice","brent","cotton","us"] },
+    { id:"iceeurope", name:"ICE Futures Europe", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"ICE Europe", country:"United Kingdom", city:"London", tags:["ice","brent","gas","europe"] },
+    { id:"eurex", name:"Eurex", tz:"UTC", open: 7*3600, close: 21*3600, category:"futures", abbreviation:"Eurex", country:"Germany", city:"Frankfurt", tags:["derivatives","eurex"] },
+
+    // Crypto
+  ];
 
   /* TIMEZONE TOGGLE */
   let showLocalMarketTime = false;
@@ -417,20 +502,126 @@ document.addEventListener("DOMContentLoaded", () => {
     sortMarketsByStatus();
   });
 
-  function sortMarketsByStatus() {
-    if (filterMode === "none") return;
-    const container = document.getElementById("markets");
-    const marketEls = [...container.querySelectorAll(".market")];
-    marketEls.sort((a, b) => {
-      const aOpen = a.classList.contains("open");
-      const bOpen = b.classList.contains("open");
-      if (filterMode === "open") {
-        return bOpen - aOpen; // open first
+  /* FAVORITES SYSTEM */
+  let favorites = new Set();
+  let showFavoritesOnly = false;
+
+  function loadFavorites() {
+    try {
+      const saved = localStorage.getItem("marketFavorites");
+      if (saved) {
+        favorites = new Set(JSON.parse(saved));
+      }
+    } catch (e) {
+      favorites = new Set();
+    }
+  }
+
+  function saveFavorites() {
+    localStorage.setItem("marketFavorites", JSON.stringify([...favorites]));
+  }
+
+  function toggleFavorite(marketId) {
+    if (favorites.has(marketId)) {
+      favorites.delete(marketId);
+    } else {
+      favorites.add(marketId);
+    }
+    saveFavorites();
+    updateFavoriteButtons();
+    refreshFavoritesSection();
+    applySearchAndFavoriteFilter();
+  }
+
+  function updateFavoriteButtons() {
+    document.querySelectorAll(".favorite-btn").forEach(btn => {
+      const marketId = btn.dataset.id;
+      if (favorites.has(marketId)) {
+        btn.classList.add("favorited");
+        btn.textContent = "★";
       } else {
-        return aOpen - bOpen; // closed first
+        btn.classList.remove("favorited");
+        btn.textContent = "☆";
       }
     });
-    marketEls.forEach(el => container.appendChild(el));
+  }
+
+  function applyFavoriteFilter() {
+    applySearchAndFavoriteFilter();
+  }
+
+  const favoriteToggle = document.getElementById("favoriteToggle");
+  favoriteToggle.addEventListener("click", () => {
+    showFavoritesOnly = !showFavoritesOnly;
+    favoriteToggle.textContent = showFavoritesOnly ? "Show All Markets" : "Show Favorites Only";
+    applyFavoriteFilter();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("favorite-btn")) {
+      e.stopPropagation();
+      e.preventDefault();
+      const marketId = e.target.dataset.id;
+      toggleFavorite(marketId);
+    }
+  });
+
+  function matchesSearch(term, card) {
+    if (!term) return true;
+    const haystack = [
+      card.dataset.name || "",
+      card.dataset.abbreviation || "",
+      card.dataset.country || "",
+      card.dataset.city || "",
+      card.dataset.tags || ""
+    ].join(" ");
+    return haystack.includes(term);
+  }
+
+  function applySearchAndFavoriteFilter() {
+    const term = (document.getElementById("searchBar").value || "").trim().toLowerCase();
+    document.querySelectorAll(".market").forEach(card => {
+      const id = card.id.replace("market-", "");
+      const visible = matchesSearch(term, card) && (!showFavoritesOnly || favorites.has(id));
+      card.style.display = visible ? "" : "none";
+    });
+    // Hide category blocks with no visible cards (except favorites when hidden)
+    categoryContentMap.forEach(({ block, content, cfg }) => {
+      if (cfg.id === "favorites") return; // handled separately
+      const hasVisible = [...content.querySelectorAll(".market")].some(card => card.style.display !== "none");
+      block.style.display = hasVisible ? "block" : "none";
+    });
+    // Apply to favorite clones
+    const favSection = categoryContentMap.get("favorites");
+    if (favSection) {
+      const hasFavs = favorites.size > 0;
+      favSection.block.style.display = hasFavs ? "block" : "none";
+      [...favSection.content.querySelectorAll(".market")].forEach(card => {
+        const sourceId = (card.id || "").replace("fav-", "");
+        const visible = matchesSearch(term, card) && (!showFavoritesOnly || favorites.has(sourceId));
+        card.style.display = visible ? "" : "none";
+      });
+    }
+  }
+
+  document.getElementById("searchBar").addEventListener("input", applySearchAndFavoriteFilter);
+
+  function sortMarketsByStatus() {
+    if (filterMode === "none") return;
+    categoryContentMap.forEach(({ content, cfg }) => {
+      if (cfg.id === "favorites") return;
+      const marketEls = [...content.querySelectorAll(".market")];
+      marketEls.sort((a, b) => {
+        const aOpen = a.classList.contains("open");
+        const bOpen = b.classList.contains("open");
+        if (filterMode === "open") {
+          return bOpen - aOpen; // open first
+        } else {
+          return aOpen - bOpen; // closed first
+        }
+      });
+      marketEls.forEach(el => content.appendChild(el));
+    });
   }
 
   /* ALERT SYSTEM */
@@ -601,6 +792,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* STAGE LOGIC */
   function getStage(now, m) {
+    if (m.scheduleType === "alwaysOpen") return "Open 24/7";
+    if (m.scheduleType === "comingSoon") return "Coming soon";
     if (m.pre !== undefined) {
       if (inRange(now, m.pre, m.open)) return "Pre‑Market";
       if (inRange(now, m.open, m.close)) return "Regular Hours";
@@ -627,6 +820,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   function drawTimeline(m) {
+    if (m.scheduleType === "alwaysOpen") {
+      return `<div class="seg regular" style="left:0;width:100%"></div>`;
+    }
+    if (m.scheduleType === "comingSoon") {
+      return `<div class="seg overnight" style="left:0;width:100%;opacity:0.35"></div>`;
+    }
     let html = "";
     if (m.pre !== undefined) {
       html += drawSeg(m.pre, m.open, "pre");
@@ -650,6 +849,8 @@ document.addEventListener("DOMContentLoaded", () => {
   /* COUNTDOWN */
   function nextEvent(now, m) {
     const add = t => (t - now + 86400) % 86400;
+    if (m.scheduleType === "alwaysOpen") return ["Open", 0];
+    if (m.scheduleType === "comingSoon") return ["Coming soon", 0];
     if (m.pre !== undefined) {
       if (inRange(now, m.pre, m.open)) return ["Opens in", add(m.open)];
       if (inRange(now, m.open, m.close)) return ["Closes in", add(m.close)];
@@ -666,16 +867,33 @@ document.addEventListener("DOMContentLoaded", () => {
     return ["Opens in", add(m.open)];
   }
 
-  /* INITIAL RENDER */
-  const marketsContainer = document.getElementById("markets");
-  markets.forEach(m => {
+  /* LAYOUT + RENDERING */
+  const categoryOrder = [
+    { id: "favorites", title: "My Markets", collapsible: false, optional: true },
+    { id: "core", title: "Core Markets", collapsible: false },
+    { id: "americas", title: "Americas", collapsible: true, defaultCollapsed: true },
+    { id: "europe", title: "Europe", collapsible: true, defaultCollapsed: true },
+    { id: "asia-pacific", title: "Asia-Pacific", collapsible: true, defaultCollapsed: true },
+    { id: "mea", title: "Middle East & Africa", collapsible: true, defaultCollapsed: true },
+    { id: "futures", title: "Futures & Commodities", collapsible: true, defaultCollapsed: true },
+  ];
+
+  function createMarketCard(m) {
     const wrapper = document.createElement("div");
     wrapper.className = "market closed";
     wrapper.id = `market-${m.id}`;
+    wrapper.dataset.category = m.category;
+    wrapper.dataset.name = m.name.toLowerCase();
+    wrapper.dataset.abbreviation = (m.abbreviation || "").toLowerCase();
+    wrapper.dataset.country = (m.country || "").toLowerCase();
+    wrapper.dataset.city = (m.city || "").toLowerCase();
+    wrapper.dataset.tags = (m.tags || []).join(" ").toLowerCase();
+
     wrapper.innerHTML = `
+      <button class="favorite-btn" data-id="${m.id}" title="Favorite">☆</button>
       <div class="market-header">
-        <strong class="market-name">${m.name}</strong>:
-        <span class="market-status">CLOSED</span> —
+        <strong class="market-name">${m.name}</strong>
+        <span class="market-status">CLOSED</span>
         <span class="market-countdown-label">Opens in</span>
         <span class="market-countdown">--</span>
       </div>
@@ -689,8 +907,121 @@ document.addEventListener("DOMContentLoaded", () => {
         <button class="arrow-down" data-id="${m.id}" title="Move down">▼</button>
       </div>
     `;
-    marketsContainer.appendChild(wrapper);
-  });
+    return wrapper;
+  }
+
+  function buildCategoryBlock(cfg) {
+    const block = document.createElement("div");
+    block.className = "category-block";
+    block.dataset.category = cfg.id;
+    const header = document.createElement("div");
+    header.className = "category-header";
+    const title = document.createElement("div");
+    title.className = "category-title";
+    title.textContent = cfg.title;
+    header.appendChild(title);
+    if (cfg.collapsible) {
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "category-toggle";
+      if (cfg.defaultCollapsed) {
+        block.classList.add("category-collapsed");
+      }
+      toggleBtn.textContent = block.classList.contains("category-collapsed") ? "Show" : "Hide";
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        block.classList.toggle("category-collapsed");
+        toggleBtn.textContent = block.classList.contains("category-collapsed") ? "Show" : "Hide";
+      });
+      header.appendChild(toggleBtn);
+    }
+    block.appendChild(header);
+
+    const content = document.createElement("div");
+    content.className = "category-content";
+    block.appendChild(content);
+
+    if (cfg.id === "favorites") {
+      const empty = document.createElement("div");
+      empty.id = "myMarketsEmpty";
+      empty.textContent = "Star markets to pin them here.";
+      block.appendChild(empty);
+    }
+
+    return { block, content };
+  }
+
+  const categoriesContainer = document.getElementById("categories");
+  const categoryContentMap = new Map();
+
+  function renderLayout() {
+    // recompute local-time-derived UTC schedules before first render
+    markets.forEach(applyLocalTimes);
+
+    categoriesContainer.innerHTML = "";
+    categoryContentMap.clear();
+    categoryOrder.forEach(cfg => {
+      const { block, content } = buildCategoryBlock(cfg);
+      if (cfg.optional) {
+        block.style.display = "none"; // only shown when favorites exist
+      }
+      categoriesContainer.appendChild(block);
+      categoryContentMap.set(cfg.id, { block, content, cfg });
+    });
+
+    markets.forEach(m => {
+      const card = createMarketCard(m);
+      const entry = categoryContentMap.get(m.category || "others");
+      if (entry) {
+        entry.content.appendChild(card);
+      }
+    });
+  }
+
+  function refreshFavoritesSection() {
+    const favSection = categoryContentMap.get("favorites");
+    if (!favSection) return;
+    const { block, content } = favSection;
+    content.innerHTML = "";
+    const hasFavs = favorites.size > 0;
+    block.style.display = hasFavs ? "block" : "none";
+    const empty = block.querySelector("#myMarketsEmpty");
+    if (empty) empty.style.display = hasFavs ? "none" : "block";
+    if (!hasFavs) return;
+    favorites.forEach(id => {
+      const mainCard = document.getElementById(`market-${id}`);
+      if (mainCard) {
+        const clone = mainCard.cloneNode(true);
+        clone.id = `fav-${id}`;
+        clone.classList.add("favorite-clone");
+        clone.querySelectorAll(".reorder-arrows").forEach(el => el.remove());
+        clone.querySelectorAll(".favorite-btn").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            toggleFavorite(id);
+          });
+        });
+        content.appendChild(clone);
+      }
+    });
+  }
+
+  function syncFavoriteClones(marketId, data) {
+    document.querySelectorAll(`#fav-${marketId}`).forEach(clone => {
+      clone.classList.toggle("open", data.isOpen);
+      clone.classList.toggle("closed", !data.isOpen);
+      const statusEl = clone.querySelector(".market-status");
+      const countdownLabelEl = clone.querySelector(".market-countdown-label");
+      const countdownEl = clone.querySelector(".market-countdown");
+      const stageEl = clone.querySelector(".market-stage");
+      const nowLine = clone.querySelector(".now");
+      if (statusEl) statusEl.textContent = data.statusText;
+      if (countdownLabelEl) countdownLabelEl.textContent = data.labelText;
+      if (countdownEl) countdownEl.textContent = data.countdownText;
+      if (stageEl) stageEl.textContent = data.stageText;
+      if (nowLine) nowLine.style.left = data.nowPct + "%";
+    });
+  }
 
        /* TRELLO‑STYLE DRAG & DROP with HOLD-TO-DRAG on touch */
   let draggedEl = null;
@@ -710,6 +1041,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!isDesktop) return; // Skip drag-and-drop on mobile
     
     document.querySelectorAll(".market").forEach(card => {
+      if (card.classList.contains("favorite-clone")) return;
       card.style.touchAction = "pan-y";
       card.style.cursor = "grab";
       card.addEventListener("pointerdown", onPointerDown);
@@ -741,6 +1073,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function onPointerDown(e) {
     if (isDragging) return; // ignore if already dragging
+    // Don't start drag if clicking on favorite button or arrow buttons
+    if (e.target.classList.contains("favorite-btn") || 
+        e.target.classList.contains("arrow-up") || 
+        e.target.classList.contains("arrow-down")) {
+      return;
+    }
     const card = e.currentTarget;
     lastX = e.clientX;
     lastY = e.clientY;
@@ -891,7 +1229,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.removeEventListener("pointercancel", onPointerUp);
   }
   function saveOrder() {
-    const ids = [...document.querySelectorAll(".market")].map(el => el.id);
+    const ids = [...document.querySelectorAll(".market")]
+      .filter(el => !el.classList.contains("favorite-clone"))
+      .map(el => el.id);
     localStorage.setItem("marketOrder", JSON.stringify(ids));
   }
 
@@ -899,42 +1239,22 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const saved = JSON.parse(localStorage.getItem("marketOrder") || "[]");
       if (!saved.length) return;
-      const container = document.getElementById("markets");
       saved.forEach(id => {
         const el = document.getElementById(id);
-        if (el) container.appendChild(el);
+        if (el && el.parentNode) {
+          el.parentNode.appendChild(el);
+        }
       });
     } catch (e) {}
   }
 
   document.getElementById("resetOrderBtn").addEventListener("click", () => {
     localStorage.removeItem("marketOrder");
-    const container = document.getElementById("markets");
-    container.innerHTML = "";
-    markets.forEach(m => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "market closed";
-      wrapper.id = `market-${m.id}`;
-      wrapper.innerHTML = `
-        <div class="market-header">
-          <strong class="market-name">${m.name}</strong>:
-          <span class="market-status">CLOSED</span> —
-          <span class="market-countdown-label">Opens in</span>
-          <span class="market-countdown">--</span>
-        </div>
-        <em class="market-stage">Stage: --</em>
-        <div class="timeline">
-          ${drawTimeline(m)}
-          <div class="now"></div>
-        </div>
-        <div class="reorder-arrows">
-          <button class="arrow-up" data-id="${m.id}" title="Move up">▲</button>
-          <button class="arrow-down" data-id="${m.id}" title="Move down">▼</button>
-        </div>
-      `;
-      container.appendChild(wrapper);
-    });
+    renderLayout();
     enableDragAndDrop();
+    updateFavoriteButtons();
+    refreshFavoritesSection();
+    applySearchAndFavoriteFilter();
     updateMarkets();
   });
 
@@ -964,6 +1284,7 @@ openingSoonList.innerHTML = "";
     const closingSoonList = document.getElementById("closingSoonList");
     closingSoonList.innerHTML = "";
     markets.forEach(m => {
+      applyLocalTimes(m);
       const el = document.getElementById(`market-${m.id}`);
       const statusEl = el.querySelector(".market-status");
       const countdownEl = el.querySelector(".market-countdown");
@@ -974,8 +1295,16 @@ openingSoonList.innerHTML = "";
       let stage, label, secs;
       
       const isHoliday = isMarketHoliday(today, m.id);
-      
-      if (isWeekend || isHoliday) {
+
+      if (m.scheduleType === "comingSoon") {
+        stage = "Coming soon";
+        label = "Coming soon";
+        secs = 0;
+      } else if (m.scheduleType === "alwaysOpen") {
+        stage = "Open 24/7";
+        label = "Open";
+        secs = 0;
+      } else if (isWeekend || isHoliday) {
         // On weekends or holidays, show as closed and calculate time until next trading day
         stage = isHoliday ? "Closed (Holiday)" : "Closed (Weekend)";
         let nextTradingDay = new Date(today);
@@ -987,9 +1316,7 @@ openingSoonList.innerHTML = "";
         }
         
         const openTime = m.open1 !== undefined ? m.open1 : m.open;
-        const nextTradingDayStart = nextTradingDay.getUTCHours() * 3600 + nextTradingDay.getUTCMinutes() * 60 + nextTradingDay.getUTCSeconds();
-        const daysUntilNextTrading = Math.ceil((nextTradingDay.getTime() - today.getTime()) / (1000 * 86400));
-        const secsToOpen = (daysUntilNextTrading * 86400) - now + openTime;
+        const secsToOpen = (Math.ceil((nextTradingDay.getTime() - today.getTime()) / 86400000) * 86400) - now + openTime;
         label = "Opens in";
         secs = secsToOpen;
       } else {
@@ -1008,7 +1335,11 @@ openingSoonList.innerHTML = "";
         closingSoonList.appendChild(closingLi);
       }
       let isOpen = false;
-      if (!isWeekend && !isHoliday) {
+      if (m.scheduleType === "alwaysOpen") {
+        isOpen = true;
+      } else if (m.scheduleType === "comingSoon") {
+        isOpen = false;
+      } else if (!isWeekend && !isHoliday) {
         if (m.pre !== undefined) {
           isOpen = inRange(now, m.open, m.close);
         } else if (m.open1 !== undefined) {
@@ -1019,9 +1350,9 @@ openingSoonList.innerHTML = "";
       }
       el.classList.toggle("open", isOpen);
       el.classList.toggle("closed", !isOpen);
-      statusEl.textContent = isOpen ? "OPEN" : "CLOSED";
+      statusEl.textContent = m.scheduleType === "comingSoon" ? "COMING SOON" : (isOpen ? "OPEN" : "CLOSED");
       countdownLabelEl.textContent = label;
-      countdownEl.textContent = format(secs);
+      countdownEl.textContent = label === "Coming soon" ? "--" : format(secs);
 
       // Check alerts
       checkAlerts(m, label, secs);
@@ -1045,6 +1376,15 @@ openingSoonList.innerHTML = "";
         li.innerHTML = name + ' <span class="open-dot" aria-hidden="true">🟢</span>';
         openList.appendChild(li);
       }
+
+      syncFavoriteClones(m.id, {
+        isOpen,
+        statusText: m.scheduleType === "comingSoon" ? "COMING SOON" : (isOpen ? "OPEN" : "CLOSED"),
+        labelText: label,
+        countdownText: label === "Coming soon" ? "--" : format(secs),
+        stageText: showLocalMarketTime && m.tz ? stageEl.textContent : "Stage: " + stage,
+        nowPct: pct(now)
+      });
     });
     sortMarketsByStatus();
   }
@@ -1066,9 +1406,14 @@ openingSoonList.innerHTML = "";
     }
   }
 
+  renderLayout();
+  loadFavorites();
+  updateFavoriteButtons();
+  refreshFavoritesSection();
   loadOrder();
   enableDragAndDrop();
   enableArrowReordering();
+  applySearchAndFavoriteFilter();
   updateTop();
   updateMarkets();
   setInterval(()=>{ updateTop(); updateMarkets(); },1000);
