@@ -95,7 +95,7 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 .pill { padding: 6px 10px; border-radius: 999px; background: rgba(0,0,0,0.08); font-size: 13px; }
 :root.dark .pill { background: rgba(255,255,255,0.06); }
 #myMarketsEmpty { font-size: 14px; opacity: 0.7; margin: 6px 0 2px 0; }
-#logoContainer { position: fixed; left: 20px; top: 20px; z-index: 100; }
+#logoContainer { position: absolute; left: 20px; top: 20px; z-index: 100; }
 #logo { max-width: 300px; height: auto; display: block; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
 :root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
@@ -123,18 +123,18 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     display: flex;
     flex-direction: column;
   }
-  /* Logo adjustments for mobile - move to top */
+  /* Logo adjustments for mobile - keep top-left but scroll away */
   #logoContainer {
-    position: static;
-    text-align: center;
-    margin-bottom: 12px;
-    order: -1;
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    z-index: 100;
   }
   #logo {
-    max-width: 240px;
-    margin: 0 auto;
+    max-width: 200px;
+    margin: 0;
     display: block;
-    width: 100%;
+    width: auto;
     height: auto;
   }
   /* move top buttons into flow so they don't overlap content */
@@ -217,6 +217,31 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     #themeToggle, #controlButtons button { font-size: 13px; padding: 6px 10px; }
     #clock { font-size: 28px; }
     body { padding: 10px; }
+  }
+}
+
+/* SMALL LAPTOP OPTIMIZATIONS */
+@media (max-width: 1200px) {
+  /* Keep logo top-left, let it scroll away on smaller laptops */
+  #logoContainer {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    z-index: 100;
+  }
+  #logo {
+    max-width: 240px;
+    margin: 0;
+    display: block;
+  }
+  #openMarketsSidebar {
+    position: fixed;
+    left: 0;
+    top: 120px;
+    width: 200px;
+    padding: 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 0;
   }
 }
 </style>
@@ -1283,6 +1308,11 @@ document.addEventListener("DOMContentLoaded", () => {
 openingSoonList.innerHTML = "";
     const closingSoonList = document.getElementById("closingSoonList");
     closingSoonList.innerHTML = "";
+    const isVisibleOrFavorite = (marketId) => {
+      const card = document.getElementById(`market-${marketId}`);
+      const visible = card && card.style.display !== "none" && card.offsetParent !== null;
+      return visible || favorites.has(marketId);
+    };
     markets.forEach(m => {
       applyLocalTimes(m);
       const el = document.getElementById(`market-${m.id}`);
@@ -1324,12 +1354,12 @@ openingSoonList.innerHTML = "";
         [label, secs] = nextEvent(now, m);
       }
       
-      if (label === "Opens in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
+      if (isVisibleOrFavorite(m.id) && label === "Opens in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
         const soonLi = document.createElement("li");
         soonLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         openingSoonList.appendChild(soonLi);
       }
-      if (label === "Closes in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
+      if (isVisibleOrFavorite(m.id) && label === "Closes in" && secs > 0 && secs <= 3600 && !isWeekend && !isHoliday) {
         const closingLi = document.createElement("li");
         closingLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         closingSoonList.appendChild(closingLi);
@@ -1370,7 +1400,7 @@ openingSoonList.innerHTML = "";
       }
 
       nowLine.style.left = pct(now) + "%";
-      if (isOpen) {
+      if (isOpen && isVisibleOrFavorite(m.id)) {
         const li = document.createElement("li");
         const name = el.querySelector(".market-name").textContent;
         li.innerHTML = name + ' <span class="open-dot" aria-hidden="true">🟢</span>';
