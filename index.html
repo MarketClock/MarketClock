@@ -118,22 +118,19 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 /* MOBILE / SMALL SCREEN OPTIMIZATIONS */
 @media (max-width: 900px) {
   body {
-    padding: 12px;
-    padding-top: 12px;
+    padding: 0;
     text-align: center;
     display: flex;
     flex-direction: column;
   }
-  
-  /* Logo at the very top - part of document flow */
+  /* Logo at the very top - static positioning */
   #logoContainer {
-    position: relative;
-    left: auto;
-    top: auto;
+    position: static;
     width: 100%;
+    padding: 16px 12px 8px;
     text-align: center;
-    margin-bottom: 16px;
-    order: -2;
+    background: inherit;
+    order: -10;
   }
   #logo {
     max-width: 180px;
@@ -142,103 +139,116 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     width: auto;
     height: auto;
   }
-  
-  /* Theme toggle in top right corner */
+  /* Theme toggle floats over top right corner */
   #themeToggle {
-    position: absolute;
-    top: 12px;
+    position: fixed;
+    top: 16px;
     right: 12px;
     margin: 0;
     padding: 8px 12px;
     font-size: 13px;
     z-index: 1000;
+    opacity: 0.9;
   }
-  
-  /* Title and timezone centered */
+  /* Title directly below logo */
   #pageTitle { 
-    font-size: 20px; 
-    margin-top: 8px;
-    margin-bottom: 8px;
+    font-size: 20px;
+    margin: 0;
+    padding: 8px 12px 12px;
+    order: -9;
     text-align: center;
   }
   #timezone { 
-    font-size: 14px; 
-    margin-bottom: 12px;
+    font-size: 14px;
+    margin: 0;
+    padding: 0 12px 16px;
+    order: -8;
     text-align: center;
   }
+  /* Search bar */
+  #searchBar {
+    order: -7;
+    margin: 0 12px 12px;
+  }
 
-  /* Open Markets section - clear section above market cards */
+  /* Sidebar becomes a prominent highlighted block on mobile */
   #openMarketsSidebar {
     position: static;
     left: auto;
     top: auto;
     width: 100%;
-    max-width: 100%;
     padding: 16px;
-    border-radius: 8px;
     margin: 0 0 20px 0;
+    border-radius: 0;
     display: block;
-    order: -1;
+    order: -6;
     text-align: left;
+    border-top: 2px solid rgba(76, 175, 80, 0.3);
+    border-bottom: 2px solid rgba(76, 175, 80, 0.3);
   }
-  
+  :root.dark #openMarketsSidebar {
+    background: rgba(76, 175, 80, 0.12);
+  }
+  :root.light #openMarketsSidebar {
+    background: rgba(76, 175, 80, 0.08);
+  }
   #openMarketsSidebar h3 { 
-    margin: 16px 0 10px 0; 
+    margin: 0 0 10px 0; 
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.95;
   }
-  #openMarketsSidebar h3:first-child { 
-    margin-top: 0; 
+  #openMarketsSidebar h3:not(:first-child) { 
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
   }
-  
+  :root.light #openMarketsSidebar h3:not(:first-child) { 
+    border-top: 1px solid rgba(0,0,0,0.1);
+  }
   #openMarketsList, #openingSoonList, #closingSoonList {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 4px;
-    list-style: none;
-    padding: 0;
+    margin-bottom: 0;
   }
-  
-  #openMarketsList:empty, #openingSoonList:empty, #closingSoonList:empty {
-    display: none;
-  }
-  
-  #openMarketsList:empty + h3, #openingSoonList:empty + h3, #closingSoonList:empty + h3 {
-    display: none;
-  }
-  
   #openMarketsList li, #openingSoonList li, #closingSoonList li {
     margin: 0;
     padding: 6px 12px;
     border-radius: 999px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     align-items: center;
     display: inline-flex;
     gap: 4px;
   }
-  
-  :root.dark #openMarketsList li,
-  :root.dark #openingSoonList li,
-  :root.dark #closingSoonList li {
-    background: rgba(76, 175, 80, 0.15);
-    color: #4caf50;
+  :root.dark #openMarketsList li {
+    background: rgba(76, 175, 80, 0.25);
+    color: #81c784;
   }
-  
-  :root.light #openMarketsList li,
-  :root.light #openingSoonList li,
-  :root.light #closingSoonList li {
-    background: rgba(46, 125, 50, 0.15);
+  :root.light #openMarketsList li {
+    background: rgba(46, 125, 50, 0.2);
     color: #2e7d32;
   }
-
-  /* Categories container proper ordering */
-  #categories {
-    order: 1;
-    width: 100%;
+  :root.dark #openingSoonList li {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffd54f;
   }
-  
+  :root.light #openingSoonList li {
+    background: rgba(255, 160, 0, 0.2);
+    color: #f57c00;
+  }
+  :root.dark #closingSoonList li {
+    background: rgba(229, 57, 53, 0.2);
+    color: #ef5350;
+  }
+  :root.light #closingSoonList li {
+    background: rgba(198, 40, 40, 0.2);
+    color: #c62828;
+  }
+
   /* markets adjust to single column and tighter spacing */
   .market-grid {
     grid-template-columns: 1fr !important;
@@ -257,12 +267,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   .timeline { height: 28px; }
 
   /* Top section with clock */
-  #top { 
-    margin-bottom: 20px;
-    order: 0;
-    text-align: center;
+  #top {
+    order: -5;
+    margin: 0;
+    padding: 0 12px 20px;
   }
-  
   #clock { font-size: 36px; }
   #date { font-size: 13px; }
   
@@ -270,10 +279,11 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   #controlButtons {
     gap: 8px;
     margin-top: 12px;
+    justify-content: center;
   }
   #controlButtons button {
-    font-size: 13px;
-    padding: 8px 12px;
+    font-size: 12px;
+    padding: 8px 10px;
   }
 
   /* legend and large controls moved to compact layout */
@@ -286,14 +296,17 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   .market.placeholder { height: 72px; }
 
   /* ensure the markets container has proper padding on small screens */
-  #categories { padding-top: 6px; }
+  #categories { 
+    padding: 0 12px;
+    order: 1;
+  }
 
-  /* avoid overlapping on very small screens */
+  /* avoid fixed overlapping on very small screens */
   @media (max-width: 420px) {
-    #logo { max-width: 150px; }
-    body { padding: 10px; padding-top: 10px; }
+    #logo { max-width: 140px; }
+    #logoContainer { padding: 12px; }
     #themeToggle { font-size: 12px; padding: 6px 10px; }
-    #controlButtons button { font-size: 12px; padding: 6px 8px; }
+    #controlButtons button { font-size: 11px; padding: 6px 8px; }
     #clock { font-size: 28px; }
     #pageTitle { font-size: 18px; }
   }
