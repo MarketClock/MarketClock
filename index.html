@@ -119,35 +119,38 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 @media (max-width: 900px) {
   body {
     padding: 12px;
+    padding-top: 80px;
     text-align: left;
     display: flex;
     flex-direction: column;
   }
-  /* Logo adjustments for mobile - keep top-left but scroll away */
+  /* Logo adjustments for mobile - fixed at top, smaller size */
   #logoContainer {
-    position: absolute;
+    position: fixed;
     left: 12px;
     top: 12px;
-    z-index: 100;
+    z-index: 1000;
   }
   #logo {
-    max-width: 200px;
+    max-width: 140px;
     margin: 0;
     display: block;
     width: auto;
     height: auto;
   }
-  /* move top buttons into flow so they don't overlap content */
+  /* move theme toggle to top right */
   #themeToggle {
-    position: static;
-    display: inline-block;
-    margin: 6px 8px;
-    right: auto;
-    top: auto;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    z-index: 1000;
   }
   /* make title and timezone stack compactly */
-  #pageTitle { font-size: 20px; margin-top: 8px; }
-  #timezone { font-size: 14px; margin-bottom: 10px; }
+  #pageTitle { font-size: 20px; margin-top: 0; margin-bottom: 8px; }
+  #timezone { font-size: 14px; margin-bottom: 12px; }
 
   /* Sidebar becomes a full-width block above markets */
   #openMarketsSidebar {
@@ -157,26 +160,41 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     width: 100%;
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    margin-bottom: 16px;
+    display: block;
   }
-  #openMarketsSidebar h3 { margin: 0; font-size: 15px; }
-  #openMarketsList, #openingSoonList {
+  #openMarketsSidebar h3 { 
+    margin: 12px 0 8px 0; 
+    font-size: 15px;
+    font-weight: 600;
+  }
+  #openMarketsSidebar h3:first-child { margin-top: 0; }
+  #openMarketsList, #openingSoonList, #closingSoonList {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    margin-bottom: 8px;
   }
-  #openMarketsList li, #openingSoonList li {
+  #openMarketsList li, #openingSoonList li, #closingSoonList li {
     margin: 0;
-    padding: 6px 8px;
+    padding: 5px 10px;
     border-radius: 999px;
-    font-weight: 600;
-    background: rgba(255,255,255,0.03);
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.08);
     align-items: center;
     display: inline-flex;
-    gap: 6px;
+    gap: 4px;
+  }
+  :root.dark #openMarketsList li,
+  :root.dark #openingSoonList li,
+  :root.dark #closingSoonList li {
+    background: rgba(255,255,255,0.08);
+  }
+  :root.light #openMarketsList li,
+  :root.light #openingSoonList li,
+  :root.light #closingSoonList li {
+    background: rgba(0,0,0,0.08);
   }
 
   /* markets adjust to single column and tighter spacing */
@@ -199,6 +217,17 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   /* reduce clock size */
   #clock { font-size: 36px; }
   #date { font-size: 13px; }
+  #top { margin-bottom: 20px; }
+  
+  /* control buttons more compact */
+  #controlButtons {
+    gap: 8px;
+    margin-top: 12px;
+  }
+  #controlButtons button {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
 
   /* legend and large controls moved to compact layout */
   #legend { display: none; }
@@ -214,9 +243,12 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
   /* avoid fixed overlapping on very small screens */
   @media (max-width: 420px) {
-    #themeToggle, #controlButtons button { font-size: 13px; padding: 6px 10px; }
+    #logo { max-width: 120px; }
+    body { padding: 10px; padding-top: 70px; }
+    #themeToggle { font-size: 12px; padding: 6px 10px; }
+    #controlButtons button { font-size: 12px; padding: 6px 8px; }
     #clock { font-size: 28px; }
-    body { padding: 10px; }
+    #pageTitle { font-size: 18px; }
   }
 }
 
