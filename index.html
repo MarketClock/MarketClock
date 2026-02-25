@@ -101,6 +101,21 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 @media (max-width: 900px) {
   #logoContainer { display: none; }
 }
+/* Market Session Strength */
+#sessionStrengthContainer { max-width: 700px; margin: 20px auto; padding: 20px; border-radius: 10px; background: rgba(0,0,0,0.06); }
+:root.dark #sessionStrengthContainer { background: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+:root.light #sessionStrengthContainer { background: rgba(0,0,0,0.04); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+#sessionStrengthTitle { font-size: 18px; font-weight: 600; margin-bottom: 16px; opacity: 0.95; text-align: center; }
+.sessions-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+.session { display: flex; flex-direction: column; align-items: center; min-width: 140px; padding: 8px; }
+.session-dot { width: 24px; height: 24px; border-radius: 50%; margin-bottom: 8px; transition: background-color 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.session-label { font-size: 13px; text-align: center; opacity: 0.9; font-weight: 500; }
+.session-key { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); }
+:root.light .session-key { border-top: 1px solid rgba(0,0,0,0.1); }
+.session-key h4 { font-size: 14px; margin: 0 0 10px 0; opacity: 0.8; font-weight: 600; text-align: center; }
+.key-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.key-item { display: flex; align-items: center; font-size: 12px; opacity: 0.85; }
+.key-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
 #openMarketsSidebar { position: fixed; left: 0; top: 120px; width: 200px; padding: 15px; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px); border-radius: 0 8px 8px 0; font-size: 15px; text-align:left; }
 :root.light #openMarketsSidebar { background: rgba(255,255,255,0.6); } #openMarketsSidebar h3 { margin-top: 0; font-size: 17px; }
 #openMarketsList, #openingSoonList, #closingSoonList { list-style: none; padding-left: 0; margin: 0; }
@@ -354,7 +369,39 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
     <button id="tzToggle">Show Market Local Times</button>
     <button id="filterToggle">Show Open First</button>
     <button id="favoriteToggle">Show Favorites Only</button>
+    <button id="sessionToggle">Hide Session Strength</button>
     <button id="alertToggle">Alert Settings</button>
+  </div>
+</div>
+
+<!-- MARKET SESSION STRENGTH -->
+<div id="sessionStrengthContainer">
+  <div id="sessionStrengthTitle">Market Session Strength</div>
+  <div class="sessions-row">
+    <div class="session">
+      <div id="usDot" class="session-dot" style="background: grey;"></div>
+      <div class="session-label">US Session<br>(S&P 500)</div>
+    </div>
+    <div class="session">
+      <div id="londonDot" class="session-dot" style="background: grey;"></div>
+      <div class="session-label">London<br>(FTSE 100)</div>
+    </div>
+    <div class="session">
+      <div id="asiaDot" class="session-dot" style="background: grey;"></div>
+      <div class="session-label">Asian<br>(Nikkei)</div>
+    </div>
+  </div>
+  <div class="session-key">
+    <h4>Key</h4>
+    <div class="key-row">
+      <div class="key-item"><div class="key-dot" style="background: #4caf50;"></div> Trending</div>
+      <div class="key-item"><div class="key-dot" style="background: #e53935;"></div> Volatile</div>
+      <div class="key-item"><div class="key-dot" style="background: #2196f3;"></div> High Volume</div>
+      <div class="key-item"><div class="key-dot" style="background: #ffc107;"></div> Choppy</div>
+      <div class="key-item"><div class="key-dot" style="background: #ff9800;"></div> Low Volume</div>
+      <div class="key-item"><div class="key-dot" style="background: #795548;"></div> Dead</div>
+      <div class="key-item"><div class="key-dot" style="background: #000;"></div> Closed</div>
+    </div>
   </div>
 </div>
 
@@ -411,6 +458,101 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  /* MARKET SESSION STRENGTH */
+  async function fetchMarket(symbol) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      
+      const data = await res.json();
+      
+      if (!data.chart || !data.chart.result || !data.chart.result[0]) {
+        throw new Error('Invalid data structure');
+      }
+      
+      return data.chart.result[0];
+    } catch (error) {
+      console.error(`Fetch error for ${symbol}:`, error);
+      return null;
+    }
+  }
+
+  function classifySession({ open, close, high, low, volume }) {
+    const range = high - low;
+    const trend = Math.abs(close - open);
+    
+    // Check if market is closed (very low/no volume and minimal price movement)
+    if (volume < 100000 && range < 5) {
+      return "#000"; // Closed (black)
+    }
+    
+    // Better relative calculations
+    const rangePercent = (range / open) * 100;
+    const trendPercent = (trend / open) * 100;
+    
+    // Normalize volume relative to price (volume in millions)
+    const volInMillions = volume / 1000000;
+    
+    if (volInMillions > 8) return "#2196f3";           // High Volume (blue)
+    if (volInMillions < 2) return "#ff9800";           // Low Volume (orange)
+    if (trendPercent > 0.4) return "#4caf50";         // Trending (green)
+    if (rangePercent > 0.8) return "#e53935";         // Volatile (red)
+    if (rangePercent < 0.15) return "#795548";        // Dead (brown)
+    return "#ffc107";                                  // Choppy (yellow)
+  }
+
+  async function updateSession(dotId, symbol) {
+    try {
+      const d = await fetchMarket(symbol);
+      
+      if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) {
+        // Market likely closed or no data available
+        document.getElementById(dotId).style.background = "#000"; // Closed (black)
+        return;
+      }
+
+      const open = d.meta.chartPreviousClose;
+      const closes = d.indicators.quote[0].close.filter(v => v != null);
+      const highs = d.indicators.quote[0].high.filter(v => v != null);
+      const lows = d.indicators.quote[0].low.filter(v => v != null);
+      const volumes = d.indicators.quote[0].volume.filter(v => v != null);
+      
+      if (closes.length === 0) {
+        // No data points - market is closed
+        document.getElementById(dotId).style.background = "#000"; // Closed (black)
+        return;
+      }
+
+      const close = closes[closes.length - 1];
+      const high = Math.max(...highs);
+      const low = Math.min(...lows);
+      const volume = volumes.reduce((a,b)=>a+b,0);
+
+      const color = classifySession({ open, close, high, low, volume });
+      document.getElementById(dotId).style.background = color;
+
+    } catch (e) {
+      console.error(`Error updating ${dotId}:`, e);
+      // On error, assume market is closed
+      document.getElementById(dotId).style.background = "#000"; // Closed (black)
+    }
+  }
+
+  function refreshAllSessions() {
+    updateSession("usDot", "ES=F");      // S&P 500 Futures
+    updateSession("londonDot", "^FTSE");   // FTSE 100
+    updateSession("asiaDot", "NK=F");    // Nikkei Futures
+  }
+
+  // Initialize and refresh market sessions
+  refreshAllSessions();
+  setInterval(refreshAllSessions, 30000); // refresh every 30 seconds
+
   /* THEME TOGGLE */
   const root = document.documentElement;
   const toggle = document.getElementById("themeToggle");
@@ -618,6 +760,26 @@ document.addEventListener("DOMContentLoaded", () => {
       filterToggle.textContent = "Show Open First";
     }
     sortMarketsByStatus();
+  });
+
+  /* SESSION STRENGTH TOGGLE */
+  let sessionStrengthVisible = true;
+  const sessionToggle = document.getElementById("sessionToggle");
+  const sessionContainer = document.getElementById("sessionStrengthContainer");
+  
+  // Load saved preference
+  const savedSessionPref = localStorage.getItem("sessionStrengthVisible");
+  if (savedSessionPref !== null) {
+    sessionStrengthVisible = savedSessionPref === "true";
+    sessionContainer.style.display = sessionStrengthVisible ? "block" : "none";
+    sessionToggle.textContent = sessionStrengthVisible ? "Hide Session Strength" : "Show Session Strength";
+  }
+  
+  sessionToggle.addEventListener("click", () => {
+    sessionStrengthVisible = !sessionStrengthVisible;
+    sessionContainer.style.display = sessionStrengthVisible ? "block" : "none";
+    sessionToggle.textContent = sessionStrengthVisible ? "Hide Session Strength" : "Show Session Strength";
+    localStorage.setItem("sessionStrengthVisible", sessionStrengthVisible.toString());
   });
 
   /* FAVORITES SYSTEM */
