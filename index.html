@@ -633,18 +633,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const s = sec%60;
     return {h,m,s};
   }
+  
+  function formatTimeUTC(seconds) {
+    const hms = secsToHMS(seconds);
+    const h = String(hms.h).padStart(2, '0');
+    const m = String(hms.m).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  
+  function formatTimeUserTZ(utcSeconds) {
+    // Convert UTC seconds-of-day to user's local time
+    const now = new Date();
+    const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const utcMillis = utcDate.getTime() + (utcSeconds * 1000);
+    const localDate = new Date(utcMillis);
+    const h = String(localDate.getHours()).padStart(2, '0');
+    const m = String(localDate.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  
   function parseHHMM(str){ const [h,m] = str.split(":").map(Number); return (h*3600)+(m*60); }
   function getTzOffsetSeconds(tz){
     const now = new Date();
-    const tzDate = new Date(now.toLocaleString("en-US", { timeZone: tz }));
-    return (tzDate.getTime() - now.getTime()) / 1000; // positive if TZ ahead of UTC
+    const utcTime = now.getTime();
+    const tzString = now.toLocaleString("en-US", { timeZone: tz });
+    const tzTime = new Date(tzString).getTime();
+    return (utcTime - tzTime) / 1000; // offset to add to local time to get UTC
   }
   function applyLocalTimes(m){
     if (!m.useLocalTime || !m.tz) return m;
     const offset = getTzOffsetSeconds(m.tz);
 
     // Helper to shift a local HH:MM to UTC seconds-of-day
-    const toUtcSec = (hhmm) => (parseHHMM(hhmm) - offset + 86400) % 86400;
+    const toUtcSec = (hhmm) => (parseHHMM(hhmm) + offset + 86400) % 86400;
 
     if (m.localOpen1 && m.localClose1 && m.localOpen2 && m.localClose2) {
       m.open1 = toUtcSec(m.localOpen1);
@@ -654,6 +675,14 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (m.localOpen && m.localClose) {
       m.open = toUtcSec(m.localOpen);
       m.close = toUtcSec(m.localClose);
+      
+      // Handle pre-market and after-hours if specified
+      if (m.localPre) {
+        m.pre = toUtcSec(m.localPre);
+      }
+      if (m.localAfter) {
+        m.after = toUtcSec(m.localAfter);
+      }
     }
     return m;
   }
@@ -712,30 +741,30 @@ document.addEventListener("DOMContentLoaded", () => {
   /* MARKETS */
   const markets = [
     // Core
-    { id:"nyse", name:"US (NYSE + NASDAQ)", tz:"America/New_York", pre: 13*3600, open: 14.5*3600, close: 21*3600, after: 22*3600, localOpen: "09:30", localClose: "16:00", category:"core", core:true, abbreviation:"US", country:"United States", city:"New York", tags:["usa","nyc","nasdaq","new york","united states"] },
-    { id:"lse", name:"London Stock Exchange (LSE)", tz:"Europe/London", open: 8*3600, close: 16.5*3600, localOpen: "08:00", localClose: "16:30", category:"core", core:true, abbreviation:"LSE", country:"United Kingdom", city:"London", tags:["uk","england","gb","gbp"] },
-    { id:"tse", name:"Tokyo Stock Exchange (JPX)", tz:"Asia/Tokyo", open1: 0*3600, close1: 2.5*3600, open2: 3.5*3600, close2: 6*3600, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00", category:"core", core:true, abbreviation:"JPX", country:"Japan", city:"Tokyo", tags:["jpx","tse","japan"] },
-    { id:"hkex", name:"Hong Kong Stock Exchange (HKEX)", tz:"Asia/Hong_Kong", open1: 1*3600, close1: 4*3600, open2: 5*3600, close2: 8*3600, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00", category:"core", core:true, abbreviation:"HKEX", country:"China", city:"Hong Kong", tags:["hong kong","china","hsi"] },
-    { id:"sse", name:"Shanghai Stock Exchange (SSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SSE", country:"China", city:"Shanghai", tags:["china","shanghai"] },
-    { id:"szse", name:"Shenzhen Stock Exchange (SZSE)", tz:"Asia/Shanghai", open1: 1.5*3600, close1: 3.5*3600, open2: 5*3600, close2: 7*3600, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SZSE", country:"China", city:"Shenzhen", tags:["china","shenzhen"] },
+    { id:"nyse", name:"US (NYSE + NASDAQ)", tz:"America/New_York", useLocalTime:true, localOpen: "09:30", localClose: "16:00", localPre: "04:00", localAfter: "20:00", category:"core", core:true, abbreviation:"US", country:"United States", city:"New York", tags:["usa","nyc","nasdaq","new york","united states"] },
+    { id:"lse", name:"London Stock Exchange (LSE)", tz:"Europe/London", useLocalTime:true, localOpen: "08:00", localClose: "16:30", category:"core", core:true, abbreviation:"LSE", country:"United Kingdom", city:"London", tags:["uk","england","gb","gbp"] },
+    { id:"tse", name:"Tokyo Stock Exchange (JPX)", tz:"Asia/Tokyo", useLocalTime:true, localOpen1: "09:00", localClose1: "11:30", localOpen2: "12:30", localClose2: "15:00", category:"core", core:true, abbreviation:"JPX", country:"Japan", city:"Tokyo", tags:["jpx","tse","japan"] },
+    { id:"hkex", name:"Hong Kong Stock Exchange (HKEX)", tz:"Asia/Hong_Kong", useLocalTime:true, localOpen1: "09:30", localClose1: "12:00", localOpen2: "13:00", localClose2: "16:00", category:"core", core:true, abbreviation:"HKEX", country:"China", city:"Hong Kong", tags:["hong kong","china","hsi"] },
+    { id:"sse", name:"Shanghai Stock Exchange (SSE)", tz:"Asia/Shanghai", useLocalTime:true, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SSE", country:"China", city:"Shanghai", tags:["china","shanghai"] },
+    { id:"szse", name:"Shenzhen Stock Exchange (SZSE)", tz:"Asia/Shanghai", useLocalTime:true, localOpen1: "09:30", localClose1: "11:30", localOpen2: "13:00", localClose2: "15:00", category:"core", core:true, abbreviation:"SZSE", country:"China", city:"Shenzhen", tags:["china","shenzhen"] },
 
     // Americas
-    { id:"tsx", name:"Toronto Stock Exchange (TSX)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSX", country:"Canada", city:"Toronto", tags:["canada"] },
-    { id:"tsxv", name:"TSX Venture (TSXV)", tz:"America/Toronto", open: 14.5*3600, close: 21*3600, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSXV", country:"Canada", city:"Toronto", tags:["canada","venture"] },
-    { id:"b3", name:"B3 (Brazil)", tz:"America/Sao_Paulo", open: 13*3600, close: 20.917*3600, localOpen: "10:00", localClose: "17:55", category:"americas", abbreviation:"B3", country:"Brazil", city:"Sao Paulo", tags:["brazil","bovespa"] },
+    { id:"tsx", name:"Toronto Stock Exchange (TSX)", tz:"America/Toronto", useLocalTime:true, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSX", country:"Canada", city:"Toronto", tags:["canada"] },
+    { id:"tsxv", name:"TSX Venture (TSXV)", tz:"America/Toronto", useLocalTime:true, localOpen: "09:30", localClose: "16:00", category:"americas", abbreviation:"TSXV", country:"Canada", city:"Toronto", tags:["canada","venture"] },
+    { id:"b3", name:"B3 (Brazil)", tz:"America/Sao_Paulo", useLocalTime:true, localOpen: "10:00", localClose: "17:55", category:"americas", abbreviation:"B3", country:"Brazil", city:"Sao Paulo", tags:["brazil","bovespa"] },
     { id:"bmv", name:"Bolsa Mexicana de Valores (BMV)", tz:"America/Mexico_City", useLocalTime:true, localOpen:"08:30", localClose:"15:00", category:"americas", abbreviation:"BMV", country:"Mexico", city:"Mexico City", tags:["mexico","latam"] },
 
     // Europe
     { id:"euronext", name:"Euronext", tz:"Europe/Paris", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"ENX", country:"Eurozone", city:"Paris", tags:["france","amsterdam","brussels","lisbon","oslo","dublin","milan"] },
-    { id:"xetra", name:"Deutsche Börse (Xetra)", tz:"Europe/Berlin", open: 8*3600, close: 16.5*3600, localOpen: "09:00", localClose: "17:30", category:"europe", abbreviation:"XETRA", country:"Germany", city:"Frankfurt", tags:["germany","deutsche","frankfurt"] },
+    { id:"xetra", name:"Deutsche Börse (Xetra)", tz:"Europe/Berlin", useLocalTime:true, localOpen: "09:00", localClose: "17:30", category:"europe", abbreviation:"XETRA", country:"Germany", city:"Frankfurt", tags:["germany","deutsche","frankfurt"] },
     { id:"six", name:"SIX Swiss Exchange", tz:"Europe/Zurich", useLocalTime:true, localOpen:"09:00", localClose:"17:20", category:"europe", abbreviation:"SIX", country:"Switzerland", city:"Zurich", tags:["switzerland","zurich"] },
     { id:"borsa", name:"Borsa Italiana", tz:"Europe/Rome", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"Borsa", country:"Italy", city:"Milan", tags:["italy","milan"] },
     { id:"bme", name:"Madrid (BME)", tz:"Europe/Madrid", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"BME", country:"Spain", city:"Madrid", tags:["spain"] },
     { id:"omx", name:"OMX Nordic", tz:"Europe/Stockholm", useLocalTime:true, localOpen:"09:00", localClose:"17:30", category:"europe", abbreviation:"OMX", country:"Nordics", city:"Stockholm", tags:["sweden","denmark","finland","nordic","helsinki","copenhagen","iceland"] },
 
     // Asia-Pacific
-    { id:"asx", name:"ASX (Australia)", tz:"Australia/Sydney", open: 23.983*3600, close: 5*3600, localOpen: "09:59", localClose: "16:00", category:"asia-pacific", abbreviation:"ASX", country:"Australia", city:"Sydney", tags:["australia","sydney"] },
-    { id:"nse", name:"NSE (India)", tz:"Asia/Kolkata", open: 3.75*3600, close: 10*3600, localOpen: "09:15", localClose: "15:30", category:"asia-pacific", abbreviation:"NSE", country:"India", city:"Mumbai", tags:["india","national stock exchange"] },
+    { id:"asx", name:"ASX (Australia)", tz:"Australia/Sydney", useLocalTime:true, localOpen: "09:59", localClose: "16:00", category:"asia-pacific", abbreviation:"ASX", country:"Australia", city:"Sydney", tags:["australia","sydney"] },
+    { id:"nse", name:"NSE (India)", tz:"Asia/Kolkata", useLocalTime:true, localOpen: "09:15", localClose: "15:30", category:"asia-pacific", abbreviation:"NSE", country:"India", city:"Mumbai", tags:["india","national stock exchange"] },
     { id:"bse", name:"BSE (India)", tz:"Asia/Kolkata", useLocalTime:true, localOpen:"09:15", localClose:"15:30", category:"asia-pacific", abbreviation:"BSE", country:"India", city:"Mumbai", tags:["india","bombay"] },
     { id:"krx", name:"KRX (Korea)", tz:"Asia/Seoul", useLocalTime:true, localOpen:"09:00", localClose:"15:30", category:"asia-pacific", abbreviation:"KRX", country:"South Korea", city:"Seoul", tags:["korea","kospi"] },
     { id:"twse", name:"TWSE (Taiwan)", tz:"Asia/Taipei", useLocalTime:true, localOpen:"09:00", localClose:"13:30", category:"asia-pacific", abbreviation:"TWSE", country:"Taiwan", city:"Taipei", tags:["taiwan"] },
@@ -760,11 +789,19 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   /* TIMEZONE TOGGLE */
-  let showLocalMarketTime = false;
+  let timezoneMode = "your"; // "your", "market", "utc"
   const tzToggle = document.getElementById("tzToggle");
   tzToggle.addEventListener("click", () => {
-    showLocalMarketTime = !showLocalMarketTime;
-    tzToggle.textContent = showLocalMarketTime ? "Show Your Timezone" : "Show Market Local Times";
+    if (timezoneMode === "your") {
+      timezoneMode = "market";
+      tzToggle.textContent = "Show UTC";
+    } else if (timezoneMode === "market") {
+      timezoneMode = "utc";
+      tzToggle.textContent = "Show Your Timezone";
+    } else {
+      timezoneMode = "your";
+      tzToggle.textContent = "Show Market Local Times";
+    }
     updateMarkets();
   });
 
@@ -1676,7 +1713,9 @@ openingSoonList.innerHTML = "";
       // Check alerts
       checkAlerts(m, label, secs);
 
-      if (showLocalMarketTime && m.tz) {
+      // Display times based on timezone mode
+      if (timezoneMode === "market" && m.tz) {
+        // Show market's local time
         if (m.open1 !== undefined) {
           stageEl.textContent = `Stage: ${stage} (Local: ${m.localOpen1}–${m.localClose1}, ${m.localOpen2}–${m.localClose2})`;
         } else if (m.localOpen !== undefined) {
@@ -1684,8 +1723,24 @@ openingSoonList.innerHTML = "";
         } else {
           stageEl.textContent = `Stage: ${stage}`;
         }
+      } else if (timezoneMode === "utc") {
+        // Show UTC time
+        if (m.open1 !== undefined) {
+          stageEl.textContent = `Stage: ${stage} (UTC: ${formatTimeUTC(m.open1)}–${formatTimeUTC(m.close1)}, ${formatTimeUTC(m.open2)}–${formatTimeUTC(m.close2)})`;
+        } else if (m.open !== undefined) {
+          stageEl.textContent = `Stage: ${stage} (UTC: ${formatTimeUTC(m.open)}–${formatTimeUTC(m.close)})`;
+        } else {
+          stageEl.textContent = `Stage: ${stage}`;
+        }
       } else {
-        stageEl.textContent = "Stage: " + stage;
+        // Show your timezone (default)
+        if (m.open1 !== undefined) {
+          stageEl.textContent = `Stage: ${stage} (Your Time: ${formatTimeUserTZ(m.open1)}–${formatTimeUserTZ(m.close1)}, ${formatTimeUserTZ(m.open2)}–${formatTimeUserTZ(m.close2)})`;
+        } else if (m.open !== undefined) {
+          stageEl.textContent = `Stage: ${stage} (Your Time: ${formatTimeUserTZ(m.open)}–${formatTimeUserTZ(m.close)})`;
+        } else {
+          stageEl.textContent = `Stage: ${stage}`;
+        }
       }
 
       nowLine.style.left = pct(now) + "%";
@@ -1701,7 +1756,7 @@ openingSoonList.innerHTML = "";
         statusText: m.scheduleType === "comingSoon" ? "COMING SOON" : (isOpen ? "OPEN" : "CLOSED"),
         labelText: label,
         countdownText: label === "Coming soon" ? "--" : format(secs),
-        stageText: showLocalMarketTime && m.tz ? stageEl.textContent : "Stage: " + stage,
+        stageText: stageEl.textContent,
         nowPct: pct(now)
       });
     });
