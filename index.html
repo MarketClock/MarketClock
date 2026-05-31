@@ -485,28 +485,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function getZonedNowParts(tz) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).formatToParts(new Date());
+
+    const map = {};
+    parts.forEach(p => {
+      if (p.type !== "literal") map[p.type] = p.value;
+    });
+    return map;
+  }
+
   function isMarketOpen(marketName) {
-    const now = new Date();
-    const utcHours = now.getUTCHours();
-    const utcMinutes = now.getUTCMinutes();
-    const utcTime = utcHours * 60 + utcMinutes; // in minutes
-    
-    // US Session: 9:30 AM - 4:00 PM ET (14:30 - 21:00 UTC)
+    let tz, openMinutes, closeMinutes;
+
     if (marketName === "US") {
-      return utcTime >= 14*60 + 30 && utcTime < 21*60;
+      tz = "America/New_York";
+      openMinutes = 9 * 60 + 30;
+      closeMinutes = 16 * 60;
+    } else if (marketName === "London") {
+      tz = "Europe/London";
+      openMinutes = 8 * 60;
+      closeMinutes = 16 * 60 + 30;
+    } else if (marketName === "Asian") {
+      tz = "Asia/Tokyo";
+      openMinutes = 9 * 60;
+      closeMinutes = 15 * 60;
+    } else {
+      return false;
     }
-    
-    // London Session: 8:00 AM - 4:30 PM GMT (8:00 - 16:30 UTC)
-    if (marketName === "London") {
-      return utcTime >= 8*60 && utcTime < 16*60 + 30;
-    }
-    
-    // Asian Session (Tokyo): 9:00 AM - 3:00 PM JST (0:00 - 6:00 UTC)
-    if (marketName === "Asian") {
-      return utcTime >= 0 && utcTime < 6*60;
-    }
-    
-    return false;
+
+    const zoned = getZonedNowParts(tz);
+    const isWeekend = zoned.weekday === "Sat" || zoned.weekday === "Sun";
+    if (isWeekend) return false;
+
+    const nowMinutes = (Number(zoned.hour) * 60) + Number(zoned.minute);
+    return nowMinutes >= openMinutes && nowMinutes < closeMinutes;
   }
 
   function classifySession({ open, close, high, low, volume }, marketName) {
@@ -655,17 +674,40 @@ document.addEventListener("DOMContentLoaded", () => {
   function parseHHMM(str){ const [h,m] = str.split(":").map(Number); return (h*3600)+(m*60); }
   function getTzOffsetSeconds(tz){
     const now = new Date();
-    const utcTime = now.getTime();
-    const tzString = now.toLocaleString("en-US", { timeZone: tz });
-    const tzTime = new Date(tzString).getTime();
-    return (utcTime - tzTime) / 1000; // offset to add to local time to get UTC
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }).formatToParts(now);
+
+    const map = {};
+    parts.forEach(p => {
+      if (p.type !== "literal") map[p.type] = p.value;
+    });
+
+    const tzAsUtcMillis = Date.UTC(
+      Number(map.year),
+      Number(map.month) - 1,
+      Number(map.day),
+      Number(map.hour),
+      Number(map.minute),
+      Number(map.second)
+    );
+
+    // Positive means timezone is ahead of UTC, negative means behind UTC.
+    return Math.round((tzAsUtcMillis - now.getTime()) / 1000);
   }
   function applyLocalTimes(m){
     if (!m.useLocalTime || !m.tz) return m;
     const offset = getTzOffsetSeconds(m.tz);
 
-    // Helper to shift a local HH:MM to UTC seconds-of-day
-    const toUtcSec = (hhmm) => (parseHHMM(hhmm) + offset + 86400) % 86400;
+    // Convert a market-local HH:MM to UTC seconds-of-day.
+    const toUtcSec = (hhmm) => (parseHHMM(hhmm) - offset + 86400) % 86400;
 
     if (m.localOpen1 && m.localClose1 && m.localOpen2 && m.localClose2) {
       m.open1 = toUtcSec(m.localOpen1);
