@@ -815,17 +815,17 @@ document.addEventListener("DOMContentLoaded", () => {
     { id:"idx", name:"IDX (Indonesia)", tz:"Asia/Jakarta", useLocalTime:true, localOpen1:"09:00", localClose1:"11:30", localOpen2:"13:30", localClose2:"15:00", category:"asia-pacific", abbreviation:"IDX", country:"Indonesia", city:"Jakarta", tags:["indonesia","jakarta"] },
 
     // Middle East & Africa
-    { id:"tadawul", name:"Tadawul (Saudi Arabia)", tz:"Asia/Riyadh", useLocalTime:true, localOpen:"10:00", localClose:"15:10", category:"mea", abbreviation:"TASI", country:"Saudi Arabia", city:"Riyadh", tags:["saudi"] },
+    { id:"tadawul", name:"Tadawul (Saudi Arabia)", tz:"Asia/Riyadh", useLocalTime:true, localOpen:"11:00", localClose:"16:10", category:"mea", abbreviation:"TASI", country:"Saudi Arabia", city:"Riyadh", tags:["saudi"] },
     { id:"dfm", name:"DFM (Dubai)", tz:"Asia/Dubai", useLocalTime:true, localOpen:"10:00", localClose:"14:45", category:"mea", abbreviation:"DFM", country:"UAE", city:"Dubai", tags:["dubai","uae"] },
     { id:"adx", name:"ADX (Abu Dhabi)", tz:"Asia/Dubai", useLocalTime:true, localOpen:"10:00", localClose:"14:44", category:"mea", abbreviation:"ADX", country:"UAE", city:"Abu Dhabi", tags:["uae","abu dhabi"] },
     { id:"qse", name:"QSE (Qatar)", tz:"Asia/Riyadh", useLocalTime:true, localOpen:"09:30", localClose:"13:00", category:"mea", abbreviation:"QSE", country:"Qatar", city:"Doha", tags:["qatar"] },
     { id:"jse", name:"JSE (South Africa)", tz:"Africa/Johannesburg", useLocalTime:true, localOpen:"09:00", localClose:"17:00", category:"mea", abbreviation:"JSE", country:"South Africa", city:"Johannesburg", tags:["south africa","johannesburg"] },
 
     // Futures & Commodities
-    { id:"cme", name:"CME Globex", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"CME", country:"United States", city:"Chicago", tags:["futures","oil","nymex","comex","cme","globex"] },
-    { id:"iceus", name:"ICE Futures U.S.", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"ICE US", country:"United States", city:"New York", tags:["ice","brent","cotton","us"] },
-    { id:"iceeurope", name:"ICE Futures Europe", tz:"UTC", open: 23*3600, close: 22*3600, category:"futures", abbreviation:"ICE Europe", country:"United Kingdom", city:"London", tags:["ice","brent","gas","europe"] },
-    { id:"eurex", name:"Eurex", tz:"UTC", open: 7*3600, close: 21*3600, category:"futures", abbreviation:"Eurex", country:"Germany", city:"Frankfurt", tags:["derivatives","eurex"] },
+    { id:"cme", name:"CME Globex", tz:"UTC", open: 22*3600, close: 21*3600, category:"futures", abbreviation:"CME", country:"United States", city:"Chicago", tags:["futures","oil","nymex","comex","cme","globex"] },
+    { id:"iceus", name:"ICE Futures U.S.", tz:"UTC", open: 22*3600, close: 21*3600, category:"futures", abbreviation:"ICE US", country:"United States", city:"New York", tags:["ice","brent","cotton","us"] },
+    { id:"iceeurope", name:"ICE Futures Europe", tz:"UTC", open: 0*3600, close: 22*3600, category:"futures", abbreviation:"ICE Europe", country:"United Kingdom", city:"London", tags:["ice","brent","gas","europe"] },
+    { id:"eurex", name:"Eurex", tz:"Europe/Berlin", useLocalTime:true, localOpen:"08:00", localClose:"22:00", category:"futures", abbreviation:"Eurex", country:"Germany", city:"Frankfurt", tags:["derivatives","eurex"] },
 
     // Crypto
   ];
@@ -1260,6 +1260,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return ["Opens in", add(m.open)];
   }
 
+  function getFuturesWeeklyTiming(m, nowUtcSec, nowDate) {
+    const config = {
+      cme: { openDay: 0, openSec: 22 * 3600, closeDay: 5, closeSec: 21 * 3600 },
+      iceus: { openDay: 0, openSec: 22 * 3600, closeDay: 5, closeSec: 21 * 3600 },
+      iceeurope: { openDay: 1, openSec: 0, closeDay: 5, closeSec: 22 * 3600 }
+    }[m.id];
+
+    if (!config) return null;
+
+    const WEEK = 7 * 86400;
+    const nowWeekSec = (nowDate.getUTCDay() * 86400) + nowUtcSec;
+    const openWeekSec = (config.openDay * 86400) + config.openSec;
+    const closeWeekSec = (config.closeDay * 86400) + config.closeSec;
+
+    const isOpen = nowWeekSec >= openWeekSec && nowWeekSec < closeWeekSec;
+    const secsToOpen = (openWeekSec - nowWeekSec + WEEK) % WEEK;
+    const secsToClose = (closeWeekSec - nowWeekSec + WEEK) % WEEK;
+
+    return {
+      isOpen,
+      stage: isOpen ? "Regular Hours" : "Closed (Weekend)",
+      label: isOpen ? "Closes in" : "Opens in",
+      secs: isOpen ? secsToClose : secsToOpen
+    };
+  }
+
   /* LAYOUT + RENDERING */
   const categoryOrder = [
     { id: "favorites", title: "My Markets", collapsible: false, optional: true },
@@ -1691,10 +1717,17 @@ openingSoonList.innerHTML = "";
       const nowLine = el.querySelector(".now");
       
       let stage, label, secs;
-      
-      const isHoliday = isMarketHoliday(today, m.id);
+      let isOpen = false;
 
-      if (m.scheduleType === "comingSoon") {
+      const futuresTiming = getFuturesWeeklyTiming(m, now, today);
+      const isHoliday = futuresTiming ? false : isMarketHoliday(today, m.id);
+
+      if (futuresTiming) {
+        stage = futuresTiming.stage;
+        label = futuresTiming.label;
+        secs = futuresTiming.secs;
+        isOpen = futuresTiming.isOpen;
+      } else if (m.scheduleType === "comingSoon") {
         stage = "Coming soon";
         label = "Coming soon";
         secs = 0;
@@ -1732,18 +1765,19 @@ openingSoonList.innerHTML = "";
         closingLi.textContent = el.querySelector(".market-name").textContent + " — " + format(secs);
         closingSoonList.appendChild(closingLi);
       }
-      let isOpen = false;
-      if (m.scheduleType === "alwaysOpen") {
-        isOpen = true;
-      } else if (m.scheduleType === "comingSoon") {
-        isOpen = false;
-      } else if (!isWeekend && !isHoliday) {
-        if (m.pre !== undefined) {
-          isOpen = inRange(now, m.open, m.close);
-        } else if (m.open1 !== undefined) {
-          isOpen = inRange(now, m.open1, m.close1) || inRange(now, m.open2, m.close2);
-        } else {
-          isOpen = inRange(now, m.open, m.close);
+      if (!futuresTiming) {
+        if (m.scheduleType === "alwaysOpen") {
+          isOpen = true;
+        } else if (m.scheduleType === "comingSoon") {
+          isOpen = false;
+        } else if (!isWeekend && !isHoliday) {
+          if (m.pre !== undefined) {
+            isOpen = inRange(now, m.open, m.close);
+          } else if (m.open1 !== undefined) {
+            isOpen = inRange(now, m.open1, m.close1) || inRange(now, m.open2, m.close2);
+          } else {
+            isOpen = inRange(now, m.open, m.close);
+          }
         }
       }
       el.classList.toggle("open", isOpen);
