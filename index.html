@@ -472,8 +472,129 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   /* MARKET SESSION STRENGTH */
+  const marketDataCache = new Map();
+  const MARKET_CACHE_TTL_MS = 20000;
+  const MARKET_CACHE_STALE_TTL_MS = 6 * 60 * 60 * 1000;
+  const FETCH_TIMEOUT_MS = 2500;
+  const SESSION_VISUAL_CACHE_KEY = "marketclock_session_visuals_v1";
+  const SESSION_VISUAL_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+  const MARKET_SYMBOL_CACHE_KEY = "marketclock_symbol_cache_v1";
+
+  function readSessionVisualCache() {
+    try {
+      const raw = localStorage.getItem(SESSION_VISUAL_CACHE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return {};
+      return parsed;
+    } catch {
+      return {};
+    }
+  }
+
+  function writeSessionVisualCache(cacheObj) {
+    try {
+      localStorage.setItem(SESSION_VISUAL_CACHE_KEY, JSON.stringify(cacheObj));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function readMarketSymbolCache() {
+    try {
+      const raw = localStorage.getItem(MARKET_SYMBOL_CACHE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return {};
+      return parsed;
+    } catch {
+      return {};
+    }
+  }
+
+  function writeMarketSymbolCache(cacheObj) {
+    try {
+      localStorage.setItem(MARKET_SYMBOL_CACHE_KEY, JSON.stringify(cacheObj));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function persistSymbolToStorage(symbol, data, timestamp) {
+    const cache = readMarketSymbolCache();
+    cache[symbol] = { data, timestamp };
+    writeMarketSymbolCache(cache);
+  }
+
+  function hydrateMarketDataCacheFromStorage() {
+    const cache = readMarketSymbolCache();
+    const now = Date.now();
+    Object.keys(cache).forEach((symbol) => {
+      const entry = cache[symbol];
+      if (!entry || !entry.timestamp || !entry.data) return;
+      if ((now - entry.timestamp) > MARKET_CACHE_STALE_TTL_MS) return;
+      marketDataCache.set(symbol, { data: entry.data, timestamp: entry.timestamp });
+    });
+  }
+
+  function getArrowFromChange(change) {
+    if (change > 0) return "up";
+    if (change < 0) return "down";
+    return "flat";
+  }
+
+  function applySessionVisual(dotId, visual) {
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+    const arrowId = dotId.replace("Dot", "Arrow");
+    const arrow = document.getElementById(arrowId);
+    if (!arrow) return;
+
+    dot.style.background = visual.background || "#000";
+    arrow.className = visual.arrowClass || "session-arrow";
+    dot.title = visual.title || "";
+  }
+
+  function cacheAndApplySessionVisual(dotId, visual) {
+    applySessionVisual(dotId, visual);
+    const cache = readSessionVisualCache();
+    cache[dotId] = { ...visual, timestamp: Date.now() };
+    writeSessionVisualCache(cache);
+  }
+
+  function warmSessionVisualsFromCache() {
+    const cache = readSessionVisualCache();
+    const now = Date.now();
+    ["usDot", "londonDot", "asiaDot"].forEach((dotId) => {
+      const v = cache[dotId];
+      if (!v || !v.timestamp) return;
+      if ((now - v.timestamp) > SESSION_VISUAL_CACHE_TTL_MS) return;
+      applySessionVisual(dotId, v);
+    });
+  }
+
+  async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function fetchMarket(symbol) {
     try {
+      const cached = marketDataCache.get(symbol);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < MARKET_CACHE_TTL_MS) {
+        return cached.data;
+      }
+
       // Try multiple CORS proxies as fallback
       const proxies = [
         'https://api.allorigins.win/raw?url=',
@@ -481,28 +602,37 @@ document.addEventListener("DOMContentLoaded", () => {
         'https://cors-anywhere.herokuapp.com/'
       ];
 
-      for (let corsProxy of proxies) {
-        try {
-          const url = corsProxy === 'https://cors-anywhere.herokuapp.com/' 
-            ? `${corsProxy}https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`
-            : `${corsProxy}${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`)}`;
-          
-          const res = await fetch(url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            if (data.chart && data.chart.result && data.chart.result[0]) {
-              return data.chart.result[0];
-            }
-          }
-        } catch (e) {
-          // Try next proxy
-          continue;
+      const target = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`;
+      const urls = proxies.map(corsProxy =>
+        corsProxy === 'https://cors-anywhere.herokuapp.com/'
+          ? `${corsProxy}${target}`
+          : `${corsProxy}${encodeURIComponent(target)}`
+      );
+
+      const requests = urls.map(async (url) => {
+        const res = await fetchWithTimeout(url);
+        if (!res.ok) throw new Error(`Bad response: ${res.status}`);
+        const data = await res.json();
+        if (data.chart && data.chart.result && data.chart.result[0]) {
+          return data.chart.result[0];
         }
+        throw new Error("No result data");
+      });
+
+      let result = null;
+      try {
+        result = await Promise.any(requests);
+      } catch (e) {
+        result = null;
       }
+
+      if (result) {
+        marketDataCache.set(symbol, { data: result, timestamp: now });
+        persistSymbolToStorage(symbol, result, now);
+        return result;
+      }
+
+      if (cached && (now - cached.timestamp) < MARKET_CACHE_STALE_TTL_MS) return cached.data;
       
       return null;
     } catch (error) {
@@ -583,6 +713,42 @@ document.addEventListener("DOMContentLoaded", () => {
     return "#ffc107";                                  // Choppy (yellow)
   }
 
+  function buildSessionVisualFromData(marketName, d) {
+    if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) return null;
+
+    const closes = d.indicators.quote[0].close.filter(v => v != null);
+    const highs = d.indicators.quote[0].high.filter(v => v != null);
+    const lows = d.indicators.quote[0].low.filter(v => v != null);
+    const volumes = d.indicators.quote[0].volume.filter(v => v != null);
+
+    if (closes.length === 0 || highs.length === 0 || lows.length === 0) {
+      return { background: "#9c27b0", arrowClass: "session-arrow", title: `${marketName} - Insufficient data` };
+    }
+
+    const open = d.meta.chartPreviousClose || closes[0];
+    const close = closes[closes.length - 1];
+    const high = Math.max(...highs);
+    const low = Math.min(...lows);
+    const volume = volumes.reduce((a,b)=>a+b,0);
+
+    if (!open || open === 0) {
+      return { background: "#9c27b0", arrowClass: "session-arrow", title: `${marketName} - Missing open` };
+    }
+
+    const ssiColor = classifySession({ open, close, high, low, volume }, marketName);
+    const change = close - open;
+    const changePercent = ((change / open) * 100).toFixed(2);
+    const range = high - low;
+    const rangePercent = ((range / open) * 100).toFixed(2);
+    const volInMillions = (volume / 1000000).toFixed(2);
+
+    return {
+      background: ssiColor,
+      arrowClass: `session-arrow ${getArrowFromChange(change)}`,
+      title: `${marketName} - ${changePercent}% | Range: ${rangePercent}% | Vol: ${volInMillions}M`
+    };
+  }
+
   async function updateSession(dotId, symbol, marketName) {
     try {
       const dot = document.getElementById(dotId);
@@ -597,98 +763,69 @@ document.addEventListener("DOMContentLoaded", () => {
       const marketIsOpen = isMarketOpen(marketName);
       
       if (!marketIsOpen) {
-        dot.style.background = "#000";
-        dot.innerHTML = "";
-        arrow.className = "session-arrow";
-        dot.title = `${marketName} - CLOSED`;
+        cacheAndApplySessionVisual(dotId, {
+          background: "#000",
+          arrowClass: "session-arrow",
+          title: `${marketName} - CLOSED`
+        });
         return;
+      }
+
+      // Instant paint from cached symbol data (if available)
+      const cachedSymbolData = marketDataCache.get(symbol);
+      if (cachedSymbolData && cachedSymbolData.data) {
+        const cachedVisual = buildSessionVisualFromData(marketName, cachedSymbolData.data);
+        if (cachedVisual) cacheAndApplySessionVisual(dotId, cachedVisual);
       }
 
       // Fetch market data
       const d = await fetchMarket(symbol);
-      
-      if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) {
-        dot.style.background = "#000";
-        dot.innerHTML = "";
-        arrow.className = "session-arrow";
-        dot.title = `${marketName} - CLOSED`;
+
+      const visual = buildSessionVisualFromData(marketName, d);
+      if (!visual) {
+        cacheAndApplySessionVisual(dotId, {
+          background: "#000",
+          arrowClass: "session-arrow",
+          title: `${marketName} - CLOSED`
+        });
         return;
       }
 
-      const closes = d.indicators.quote[0].close.filter(v => v != null);
-      const highs = d.indicators.quote[0].high.filter(v => v != null);
-      const lows = d.indicators.quote[0].low.filter(v => v != null);
-      const volumes = d.indicators.quote[0].volume.filter(v => v != null);
-      
-      if (closes.length === 0 || highs.length === 0 || lows.length === 0) {
-        dot.style.background = "#9c27b0";
-        dot.innerHTML = "";
-        arrow.className = "session-arrow";
-        dot.title = `${marketName} - Insufficient data`;
-        return;
-      }
-
-      const open = d.meta.chartPreviousClose || closes[0];
-      const close = closes[closes.length - 1];
-      const high = Math.max(...highs);
-      const low = Math.min(...lows);
-      const volume = volumes.reduce((a,b)=>a+b,0);
-
-      if (!open || open === 0) {
-        dot.style.background = "#9c27b0";
-        dot.innerHTML = "";
-        arrow.className = "session-arrow";
-        dot.title = `${marketName} - Missing open`;
-        return;
-      }
-
-      // Get SSI color (market condition)
-      const ssiColor = classifySession({ open, close, high, low, volume }, marketName);
-      dot.style.background = ssiColor;
-
-      // Determine arrow based on open vs close
-      const change = close - open;
-      const changePercent = ((change / open) * 100).toFixed(2);
-      
-      if (change > 0) {
-        arrow.className = "session-arrow up";
-      } else if (change < 0) {
-        arrow.className = "session-arrow down";
-      } else {
-        arrow.className = "session-arrow flat";
-      }
-      
-      dot.innerHTML = "";
-      
-      // Set title for hover info
-      const range = high - low;
-      const rangePercent = ((range / open) * 100).toFixed(2);
-      const volInMillions = (volume / 1000000).toFixed(2);
-      dot.title = `${marketName} - ${changePercent}% | Range: ${rangePercent}% | Vol: ${volInMillions}M`;
+      cacheAndApplySessionVisual(dotId, visual);
 
     } catch (e) {
       console.error(`Error updating ${dotId}:`, e);
-      const dot = document.getElementById(dotId);
-      if (dot) {
-        dot.style.background = "#000";
-        dot.title = "Error loading data";
-      }
+      cacheAndApplySessionVisual(dotId, {
+        background: "#000",
+        arrowClass: "session-arrow",
+        title: "Error loading data"
+      });
     }
   }
 
-  function refreshAllSessions() {
+  let sessionRefreshInFlight = false;
+
+  async function refreshAllSessions() {
+    if (sessionRefreshInFlight) return;
+    sessionRefreshInFlight = true;
     try {
-      updateSession("usDot", "ES=F", "US");           // S&P 500 Futures
-      updateSession("londonDot", "^FTSE", "London");  // FTSE 100
-      updateSession("asiaDot", "NK=F", "Asian");      // Nikkei Futures
+      await Promise.all([
+        updateSession("usDot", "ES=F", "US"),           // S&P 500 Futures
+        updateSession("londonDot", "^FTSE", "London"),  // FTSE 100
+        updateSession("asiaDot", "NK=F", "Asian")       // Nikkei Futures
+      ]);
     } catch (e) {
       console.error("Error refreshing sessions:", e);
+    } finally {
+      sessionRefreshInFlight = false;
     }
   }
 
   // Initialize and refresh market sessions
+  hydrateMarketDataCacheFromStorage();
+  warmSessionVisualsFromCache();
   refreshAllSessions();
-  setInterval(refreshAllSessions, 30000); // refresh every 30 seconds
+  setInterval(refreshAllSessions, 15000); // refresh every 15 seconds
 
   /* THEME TOGGLE */
   const root = document.documentElement;
