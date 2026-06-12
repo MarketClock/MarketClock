@@ -109,6 +109,10 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 .sessions-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
 .session { display: flex; flex-direction: column; align-items: center; min-width: 140px; padding: 8px; }
 .session-dot { width: 24px; height: 24px; border-radius: 50%; margin-bottom: 8px; transition: background-color 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.session-arrow { width: 0; height: 0; margin-bottom: 8px; margin-left: 8px; }
+.session-arrow.up { border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid #4caf50; }
+.session-arrow.down { border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid #f44336; }
+.session-arrow.flat { width: 12px; height: 2px; background-color: #999; margin-top: 8px; }
 .session-label { font-size: 13px; text-align: center; opacity: 0.9; font-weight: 500; }
 .session-key { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); }
 :root.light .session-key { border-top: 1px solid rgba(0,0,0,0.1); }
@@ -379,15 +383,24 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   <div id="sessionStrengthTitle">Market Session Strength</div>
   <div class="sessions-row">
     <div class="session">
-      <div id="usDot" class="session-dot" style="background: grey;"></div>
+      <div style="display: flex; align-items: flex-start;">
+        <div id="usDot" class="session-dot" style="background: grey;"></div>
+        <div id="usArrow" class="session-arrow"></div>
+      </div>
       <div class="session-label">US Session<br>(S&P 500)</div>
     </div>
     <div class="session">
-      <div id="londonDot" class="session-dot" style="background: grey;"></div>
+      <div style="display: flex; align-items: flex-start;">
+        <div id="londonDot" class="session-dot" style="background: grey;"></div>
+        <div id="londonArrow" class="session-arrow"></div>
+      </div>
       <div class="session-label">London<br>(FTSE 100)</div>
     </div>
     <div class="session">
-      <div id="asiaDot" class="session-dot" style="background: grey;"></div>
+      <div style="display: flex; align-items: flex-start;">
+        <div id="asiaDot" class="session-dot" style="background: grey;"></div>
+        <div id="asiaArrow" class="session-arrow"></div>
+      </div>
       <div class="session-label">Asian<br>(Nikkei)</div>
     </div>
   </div>
@@ -461,28 +474,46 @@ document.addEventListener("DOMContentLoaded", () => {
   /* MARKET SESSION STRENGTH */
   async function fetchMarket(symbol) {
     try {
-      // Use CORS proxy to avoid CORS issues
-      const corsProxy = 'https://corsproxy.io/?';
-      const url = `${corsProxy}${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`)}`;
-      
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      
-      const data = await res.json();
-      
-      if (!data.chart || !data.chart.result || !data.chart.result[0]) {
-        throw new Error('Invalid data structure');
+      // Try multiple CORS proxies as fallback
+      const proxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://cors-anywhere.herokuapp.com/'
+      ];
+
+      for (let corsProxy of proxies) {
+        try {
+          const url = corsProxy === 'https://cors-anywhere.herokuapp.com/' 
+            ? `${corsProxy}https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`
+            : `${corsProxy}${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`)}`;
+          
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data.chart && data.chart.result && data.chart.result[0]) {
+              return data.chart.result[0];
+            }
+          }
+        } catch (e) {
+          // Try next proxy
+          continue;
+        }
       }
       
-      return data.chart.result[0];
+      return null;
     } catch (error) {
       console.error(`Fetch error for ${symbol}:`, error);
       return null;
     }
+  }
+
+  function getMarketStrengthColor() {
+    // Fallback: show a cycling color to indicate the indicator is trying to load data
+    return "#9c27b0"; // Purple - neutral/loading
   }
 
   function getZonedNowParts(tz) {
@@ -529,18 +560,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function classifySession({ open, close, high, low, volume }, marketName) {
-    // First check if market is in trading hours
-    if (!isMarketOpen(marketName)) {
+    // Check if market has no data or minimal activity - then it's closed
+    if (!open || volume < 50000) {
       return "#000"; // Closed (black)
     }
     
     const range = high - low;
     const trend = Math.abs(close - open);
-    
-    // Check if market is closed (very low/no volume and minimal price movement)
-    if (volume < 100000 && range < 5) {
-      return "#000"; // Closed (black)
-    }
     
     // Better relative calculations
     const rangePercent = (range / open) * 100;
@@ -559,45 +585,105 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function updateSession(dotId, symbol, marketName) {
     try {
-      const d = await fetchMarket(symbol);
+      const dot = document.getElementById(dotId);
+      if (!dot) return;
       
-      if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) {
-        // Market likely closed or no data available
-        document.getElementById(dotId).style.background = "#000"; // Closed (black)
+      // Map dotId to arrowId
+      const arrowId = dotId.replace("Dot", "Arrow");
+      const arrow = document.getElementById(arrowId);
+      if (!arrow) return;
+
+      // First check if market is open
+      const marketIsOpen = isMarketOpen(marketName);
+      
+      if (!marketIsOpen) {
+        dot.style.background = "#000";
+        dot.innerHTML = "";
+        arrow.className = "session-arrow";
+        dot.title = `${marketName} - CLOSED`;
         return;
       }
 
-      const open = d.meta.chartPreviousClose;
+      // Fetch market data
+      const d = await fetchMarket(symbol);
+      
+      if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) {
+        dot.style.background = "#000";
+        dot.innerHTML = "";
+        arrow.className = "session-arrow";
+        dot.title = `${marketName} - CLOSED`;
+        return;
+      }
+
       const closes = d.indicators.quote[0].close.filter(v => v != null);
       const highs = d.indicators.quote[0].high.filter(v => v != null);
       const lows = d.indicators.quote[0].low.filter(v => v != null);
       const volumes = d.indicators.quote[0].volume.filter(v => v != null);
       
-      if (closes.length === 0) {
-        // No data points - market is closed
-        document.getElementById(dotId).style.background = "#000"; // Closed (black)
+      if (closes.length === 0 || highs.length === 0 || lows.length === 0) {
+        dot.style.background = "#9c27b0";
+        dot.innerHTML = "";
+        arrow.className = "session-arrow";
+        dot.title = `${marketName} - Insufficient data`;
         return;
       }
 
+      const open = d.meta.chartPreviousClose || closes[0];
       const close = closes[closes.length - 1];
       const high = Math.max(...highs);
       const low = Math.min(...lows);
       const volume = volumes.reduce((a,b)=>a+b,0);
 
-      const color = classifySession({ open, close, high, low, volume }, marketName);
-      document.getElementById(dotId).style.background = color;
+      if (!open || open === 0) {
+        dot.style.background = "#9c27b0";
+        dot.innerHTML = "";
+        arrow.className = "session-arrow";
+        dot.title = `${marketName} - Missing open`;
+        return;
+      }
+
+      // Get SSI color (market condition)
+      const ssiColor = classifySession({ open, close, high, low, volume }, marketName);
+      dot.style.background = ssiColor;
+
+      // Determine arrow based on open vs close
+      const change = close - open;
+      const changePercent = ((change / open) * 100).toFixed(2);
+      
+      if (change > 0) {
+        arrow.className = "session-arrow up";
+      } else if (change < 0) {
+        arrow.className = "session-arrow down";
+      } else {
+        arrow.className = "session-arrow flat";
+      }
+      
+      dot.innerHTML = "";
+      
+      // Set title for hover info
+      const range = high - low;
+      const rangePercent = ((range / open) * 100).toFixed(2);
+      const volInMillions = (volume / 1000000).toFixed(2);
+      dot.title = `${marketName} - ${changePercent}% | Range: ${rangePercent}% | Vol: ${volInMillions}M`;
 
     } catch (e) {
       console.error(`Error updating ${dotId}:`, e);
-      // On error, assume market is closed
-      document.getElementById(dotId).style.background = "#000"; // Closed (black)
+      const dot = document.getElementById(dotId);
+      if (dot) {
+        dot.style.background = "#000";
+        dot.title = "Error loading data";
+      }
     }
   }
 
   function refreshAllSessions() {
-    updateSession("usDot", "ES=F", "US");           // S&P 500 Futures
-    updateSession("londonDot", "^FTSE", "London");  // FTSE 100
-    updateSession("asiaDot", "NK=F", "Asian");      // Nikkei Futures
+    try {
+      updateSession("usDot", "ES=F", "US");           // S&P 500 Futures
+      updateSession("londonDot", "^FTSE", "London");  // FTSE 100
+      updateSession("asiaDot", "NK=F", "Asian");      // Nikkei Futures
+    } catch (e) {
+      console.error("Error refreshing sessions:", e);
+    }
   }
 
   // Initialize and refresh market sessions
