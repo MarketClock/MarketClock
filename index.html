@@ -378,43 +378,27 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   </div>
 </div>
 
-<!-- MARKET SESSION STRENGTH -->
-<div id="sessionStrengthContainer">
-  <div id="sessionStrengthTitle">Market Session Strength</div>
-  <div class="sessions-row">
-    <div class="session">
-      <div style="display: flex; align-items: flex-start;">
-        <div id="usDot" class="session-dot" style="background: grey;"></div>
-        <div id="usArrow" class="session-arrow"></div>
-      </div>
-      <div class="session-label">US Session<br>(S&P 500)</div>
+<!-- MARKET DIRECTION ARROWS -->
+<div id="sessionStrengthContainer" style="text-align: center; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 600px;">
+  <div id="sessionStrengthTitle" style="font-size: 18px; font-weight: bold; margin-bottom: 16px;">Market Direction Today</div>
+  <div class="sessions-row" style="display: flex; justify-content: center; gap: 40px; margin-bottom: 16px;">
+    <div class="session" style="text-align: center;">
+      <div id="usArrow" class="session-arrow" style="margin: 0 auto 8px;"></div>
+      <div style="font-size: 11px; color: #999;">US (S&P 500)</div>
     </div>
-    <div class="session">
-      <div style="display: flex; align-items: flex-start;">
-        <div id="londonDot" class="session-dot" style="background: grey;"></div>
-        <div id="londonArrow" class="session-arrow"></div>
-      </div>
-      <div class="session-label">London<br>(FTSE 100)</div>
+    <div class="session" style="text-align: center;">
+      <div id="londonArrow" class="session-arrow" style="margin: 0 auto 8px;"></div>
+      <div style="font-size: 11px; color: #999;">London (FTSE)</div>
     </div>
-    <div class="session">
-      <div style="display: flex; align-items: flex-start;">
-        <div id="asiaDot" class="session-dot" style="background: grey;"></div>
-        <div id="asiaArrow" class="session-arrow"></div>
-      </div>
-      <div class="session-label">Asian<br>(Nikkei)</div>
+    <div class="session" style="text-align: center;">
+      <div id="asiaArrow" class="session-arrow" style="margin: 0 auto 8px;"></div>
+      <div style="font-size: 11px; color: #999;">Asia (Nikkei)</div>
     </div>
   </div>
-  <div class="session-key">
-    <h4>Key</h4>
-    <div class="key-row">
-      <div class="key-item"><div class="key-dot" style="background: #4caf50;"></div> Trending</div>
-      <div class="key-item"><div class="key-dot" style="background: #e53935;"></div> Volatile</div>
-      <div class="key-item"><div class="key-dot" style="background: #2196f3;"></div> High Volume</div>
-      <div class="key-item"><div class="key-dot" style="background: #ffc107;"></div> Choppy</div>
-      <div class="key-item"><div class="key-dot" style="background: #ff9800;"></div> Low Volume</div>
-      <div class="key-item"><div class="key-dot" style="background: #795548;"></div> Dead</div>
-      <div class="key-item"><div class="key-dot" style="background: #000;"></div> Closed</div>
-    </div>
+  <div style="font-size: 10px; color: #777; display: flex; justify-content: center; gap: 20px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+    <span>🟢 Up</span>
+    <span>🔴 Down</span>
+    <span>⚪ Flat</span>
   </div>
 </div>
 
@@ -749,13 +733,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  async function updateSession(dotId, symbol, marketName) {
+  async function updateSession(arrowId, symbol, marketName) {
     try {
-      const dot = document.getElementById(dotId);
-      if (!dot) return;
-      
-      // Map dotId to arrowId
-      const arrowId = dotId.replace("Dot", "Arrow");
       const arrow = document.getElementById(arrowId);
       if (!arrow) return;
 
@@ -763,43 +742,57 @@ document.addEventListener("DOMContentLoaded", () => {
       const marketIsOpen = isMarketOpen(marketName);
       
       if (!marketIsOpen) {
-        cacheAndApplySessionVisual(dotId, {
-          background: "#000",
-          arrowClass: "session-arrow",
-          title: `${marketName} - CLOSED`
-        });
+        arrow.className = "session-arrow";
+        arrow.title = `${marketName} - CLOSED`;
         return;
-      }
-
-      // Instant paint from cached symbol data (if available)
-      const cachedSymbolData = marketDataCache.get(symbol);
-      if (cachedSymbolData && cachedSymbolData.data) {
-        const cachedVisual = buildSessionVisualFromData(marketName, cachedSymbolData.data);
-        if (cachedVisual) cacheAndApplySessionVisual(dotId, cachedVisual);
       }
 
       // Fetch market data
       const d = await fetchMarket(symbol);
-
-      const visual = buildSessionVisualFromData(marketName, d);
-      if (!visual) {
-        cacheAndApplySessionVisual(dotId, {
-          background: "#000",
-          arrowClass: "session-arrow",
-          title: `${marketName} - CLOSED`
-        });
+      
+      if (!d || !d.indicators || !d.indicators.quote || !d.indicators.quote[0]) {
+        arrow.className = "session-arrow";
+        arrow.title = `${marketName} - No data`;
         return;
       }
 
-      cacheAndApplySessionVisual(dotId, visual);
+      const closes = d.indicators.quote[0].close.filter(v => v != null);
+      if (closes.length === 0) {
+        arrow.className = "session-arrow";
+        arrow.title = `${marketName} - No closes`;
+        return;
+      }
+
+      const open = d.meta.chartPreviousClose || closes[0];
+      const close = closes[closes.length - 1];
+
+      if (!open || open === 0) {
+        arrow.className = "session-arrow";
+        arrow.title = `${marketName} - No open`;
+        return;
+      }
+
+      const change = close - open;
+      const changePercent = ((change / open) * 100).toFixed(2);
+      
+      if (change > 0) {
+        arrow.className = "session-arrow up";
+        arrow.title = `${marketName} - UP ${changePercent}%`;
+      } else if (change < 0) {
+        arrow.className = "session-arrow down";
+        arrow.title = `${marketName} - DOWN ${Math.abs(changePercent)}%`;
+      } else {
+        arrow.className = "session-arrow flat";
+        arrow.title = `${marketName} - FLAT 0%`;
+      }
 
     } catch (e) {
-      console.error(`Error updating ${dotId}:`, e);
-      cacheAndApplySessionVisual(dotId, {
-        background: "#000",
-        arrowClass: "session-arrow",
-        title: "Error loading data"
-      });
+      console.error(`Error updating ${arrowId}:`, e);
+      const arrow = document.getElementById(arrowId);
+      if (arrow) {
+        arrow.className = "session-arrow";
+        arrow.title = "Error loading";
+      }
     }
   }
 
@@ -810,9 +803,9 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionRefreshInFlight = true;
     try {
       await Promise.all([
-        updateSession("usDot", "ES=F", "US"),           // S&P 500 Futures
-        updateSession("londonDot", "^FTSE", "London"),  // FTSE 100
-        updateSession("asiaDot", "NK=F", "Asian")       // Nikkei Futures
+        updateSession("usArrow", "ES=F", "US"),           // S&P 500 Futures
+        updateSession("londonArrow", "^FTSE", "London"),  // FTSE 100
+        updateSession("asiaArrow", "NK=F", "Asian")       // Nikkei Futures
       ]);
     } catch (e) {
       console.error("Error refreshing sessions:", e);
