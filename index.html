@@ -617,6 +617,17 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
 
 <div id="seoContent">
   <p>MarketClock provides live global market hours and real‑time opening and closing times for major stock exchanges worldwide, including New York (NYSE & NASDAQ), London Stock Exchange (LSE), Frankfurt Xetra, Euronext Paris, Tokyo Stock Exchange (TSE), Hong Kong Stock Exchange (HKEX), Shanghai Stock Exchange (SSE), Singapore Exchange (SGX), India's National Stock Exchange (NSE), Sydney's ASX, Toronto Stock Exchange (TSX), and Brazil's B3. Track worldwide trading sessions, market status updates, countdowns to the next open or close, and key international market overlaps in one simple, fast, and accurate global market clock. Designed for traders, investors, and anyone following international stock market times.</p>
+  <p><strong>What Time Does the London Stock Exchange (LSE) Open?</strong></p>
+  <p>The London Stock Exchange opens at 8:00am and closes at 4:30pm UK time, Monday to Friday, with a pre-market auction from 7:50am and a closing auction until 4:35pm. As the main UK trading hub, LSE hours are the reference point most UK-based traders and investors plan around.</p>
+
+  <p><strong>What Time Does the US Stock Market Open in UK Time?</strong></p>
+  <p>The New York Stock Exchange (NYSE) and NASDAQ open at 2:30pm UK time and close at 9:00pm UK time (adjusting for US daylight saving). This creates a busy overlap window with London between roughly 2:30pm and 4:30pm UK time, when both markets are trading simultaneously.</p>
+
+  <p><strong>What Time Do Asian Markets Open (Tokyo, Hong Kong, Shanghai)?</strong></p>
+  <p>Asian markets open first in the trading day from a UK perspective. Tokyo Stock Exchange typically runs from around midnight to 6am UK time, with Hong Kong and Shanghai following shortly after. There's a short overlap between Asian and London trading hours in the early UK morning before Asian markets close.</p>
+
+  <p><strong>Best Time to Trade Forex and Stocks (Session Overlaps)</strong></p>
+  <p>Trading activity and volatility tend to be highest when two major sessions overlap — most notably the London–New York overlap in the UK afternoon, and to a lesser extent the Asia–London overlap in the early UK morning. Many traders focus their activity around these windows for the highest liquidity.</p>
 </div>
 
 <script>
@@ -1776,6 +1787,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (cfg.optional && content.children.length === 0) block.style.display = 'none';
         categoryContentMap.set(cfg.id, { block, content, cfg });
+      });
+      // Ensure any markets missing from the pre-render are created and appended
+      markets.forEach(m => {
+        const existing = document.getElementById(`market-${m.id}`);
+        if (existing) return;
+        const entry = categoryContentMap.get(m.category || 'others');
+        if (entry) {
+          const card = createMarketCard(m);
+          entry.content.appendChild(card);
+        }
       });
       return;
     }
