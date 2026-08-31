@@ -2114,6 +2114,8 @@ openingSoonList.innerHTML = "";
     markets.forEach(m => {
       applyLocalTimes(m);
       const el = document.getElementById(`market-${m.id}`);
+      // If a pre-render doesn't include this market, skip it rather than throwing
+      if (!el) return;
       const statusEl = el.querySelector(".market-status");
       const countdownEl = el.querySelector(".market-countdown");
       const countdownLabelEl = el.querySelector(".market-countdown-label");
