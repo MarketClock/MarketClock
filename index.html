@@ -12,7 +12,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9894847025653887"
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9894847025653887"
      crossorigin="anonymous"></script>
 <title>Market Clock</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
@@ -428,8 +428,172 @@ body{ margin:0; padding:40px; font-family:Arial,Helvetica,sans-serif; text-align
   </div>
 </div>
 
-<!-- Markets container (sections built dynamically) -->
-<div id="categories"></div>
+<!-- Markets container (sections built dynamically)
+     Pre-rendered static markup below so crawlers see market names, status and times
+     JS will detect these blocks and hydrate them instead of recreating duplicates. -->
+<div id="categories">
+  <!-- Core Markets -->
+  <div class="category-block" data-category="core">
+    <div class="category-header"><div class="category-title">Core Markets</div></div>
+    <div class="category-content">
+      <div class="market closed" id="market-nyse" data-category="core" data-name="us (nyse + nasdaq)" data-abbreviation="us" data-country="united states" data-city="new york" data-tags="usa nyc nasdaq new york united states">
+        <button class="favorite-btn" data-id="nyse" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">US (NYSE + NASDAQ)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:30–16:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-lse" data-category="core" data-name="london stock exchange (lse)" data-abbreviation="lse" data-country="united kingdom" data-city="london" data-tags="uk england gb gbp">
+        <button class="favorite-btn" data-id="lse" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">London Stock Exchange (LSE)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 08:00–16:30)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-tse" data-category="core" data-name="tokyo stock exchange (jpx)" data-abbreviation="jpx" data-country="japan" data-city="tokyo" data-tags="jpx tse japan">
+        <button class="favorite-btn" data-id="tse" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Tokyo Stock Exchange (JPX)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:00–11:30, 12:30–15:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-hkex" data-category="core" data-name="hong kong stock exchange (hkex)" data-abbreviation="hkex" data-country="china" data-city="hong kong" data-tags="hong kong china hsi">
+        <button class="favorite-btn" data-id="hkex" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Hong Kong Stock Exchange (HKEX)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:30–12:00, 13:00–16:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-sse" data-category="core" data-name="shanghai stock exchange (sse)" data-abbreviation="sse" data-country="china" data-city="shanghai" data-tags="china shanghai">
+        <button class="favorite-btn" data-id="sse" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Shanghai Stock Exchange (SSE)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:30–11:30, 13:00–15:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-szse" data-category="core" data-name="shenzhen stock exchange (szse)" data-abbreviation="szse" data-country="china" data-city="shenzhen" data-tags="china shenzhen">
+        <button class="favorite-btn" data-id="szse" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Shenzhen Stock Exchange (SZSE)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:30–11:30, 13:00–15:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Americas (sample visible) -->
+  <div class="category-block" data-category="americas">
+    <div class="category-header"><div class="category-title">Americas</div></div>
+    <div class="category-content">
+      <div class="market closed" id="market-tsx" data-category="americas" data-name="toronto stock exchange (tsx)" data-abbreviation="tsx" data-country="canada" data-city="toronto" data-tags="canada">
+        <button class="favorite-btn" data-id="tsx" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Toronto Stock Exchange (TSX)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:30–16:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+
+      <div class="market closed" id="market-b3" data-category="americas" data-name="b3 (brazil)" data-abbreviation="b3" data-country="brazil" data-city="sao paulo" data-tags="brazil bovespa">
+        <button class="favorite-btn" data-id="b3" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">B3 (Brazil)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 10:00–17:55)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Europe -->
+  <div class="category-block" data-category="europe">
+    <div class="category-header"><div class="category-title">Europe</div></div>
+    <div class="category-content">
+      <div class="market closed" id="market-euronext" data-category="europe" data-name="euronext" data-abbreviation="enx" data-country="eurozone" data-city="paris" data-tags="france amsterdam brussels lisbon oslo dublin milan">
+        <button class="favorite-btn" data-id="euronext" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">Euronext</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:00–17:30)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asia-Pacific -->
+  <div class="category-block" data-category="asia-pacific">
+    <div class="category-header"><div class="category-title">Asia-Pacific</div></div>
+    <div class="category-content">
+      <div class="market closed" id="market-asx" data-category="asia-pacific" data-name="asx (australia)" data-abbreviation="asx" data-country="australia" data-city="sydney" data-tags="australia sydney">
+        <button class="favorite-btn" data-id="asx" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">ASX (Australia)</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: -- (Local: 09:59–16:00)</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Futures & others present but collapsed by JS if necessary -->
+  <div class="category-block" data-category="futures">
+    <div class="category-header"><div class="category-title">Futures & Commodities</div></div>
+    <div class="category-content">
+      <div class="market closed" id="market-cme" data-category="futures" data-name="cme globex" data-abbreviation="cme" data-country="united states" data-city="chicago" data-tags="futures oil nymex comex cme globex">
+        <button class="favorite-btn" data-id="cme" title="Favorite">☆</button>
+        <div class="market-header">
+          <strong class="market-name">CME Globex</strong>
+          <span class="market-status">CLOSED</span>
+          <span class="market-countdown-label">Opens in</span>
+          <span class="market-countdown">--</span>
+        </div>
+        <em class="market-stage">Stage: --</em>
+        <div class="timeline"><div class="now" style="left:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="legend">
   <div class="legend-item"><div class="legend-box" style="background:#9c27b0"></div>Pre‑Market</div>
@@ -1594,8 +1758,30 @@ document.addEventListener("DOMContentLoaded", () => {
     // recompute local-time-derived UTC schedules before first render
     markets.forEach(applyLocalTimes);
 
-    categoriesContainer.innerHTML = "";
+    // If server provided pre-rendered category blocks, hydrate the map and keep existing cards
     categoryContentMap.clear();
+    if (categoriesContainer.querySelector('.category-block')) {
+      categoryOrder.forEach(cfg => {
+        let block = categoriesContainer.querySelector(`.category-block[data-category="${cfg.id}"]`);
+        if (!block) {
+          const created = buildCategoryBlock(cfg);
+          categoriesContainer.appendChild(created.block);
+          block = created.block;
+        }
+        let content = block.querySelector('.category-content');
+        if (!content) {
+          content = document.createElement('div');
+          content.className = 'category-content';
+          block.appendChild(content);
+        }
+        if (cfg.optional && content.children.length === 0) block.style.display = 'none';
+        categoryContentMap.set(cfg.id, { block, content, cfg });
+      });
+      return;
+    }
+
+    // Default client-side build (no prerender present)
+    categoriesContainer.innerHTML = "";
     categoryOrder.forEach(cfg => {
       const { block, content } = buildCategoryBlock(cfg);
       if (cfg.optional) {
